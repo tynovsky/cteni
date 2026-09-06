@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Hladové příšerky</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Baloo+2:wght@700;800&family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👾</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- DOMŮ -->
+<section id="home" class="screen active">
+  <header class="title">
+    <h1>Hladové <span>příšerky</span></h1>
+    <p>Čti rychle, krm svoji příšerku a sežer ostatní dřív, než sežerou ony tebe!</p>
+  </header>
+  <div class="worlds" id="worlds"></div>
+  <div class="home-buttons">
+    <button class="btn ghost" id="btn-help">❓ Jak se hraje</button>
+    <button class="btn ghost" id="btn-parent">⚙️ Rodič</button>
+  </div>
+</section>
+
+<!-- HRA -->
+<section id="game" class="screen">
+  <div class="topbar">
+    <button class="btn round" id="btn-back">←</button>
+    <div class="score" id="score"></div>
+    <button class="btn round" id="btn-speak" title="Přečti mi to">🔊</button>
+  </div>
+  <div class="arena" id="arena">
+    <div class="flash" id="flash"></div>
+  </div>
+  <div class="feed">
+    <div class="bubble" id="bubble"><span class="who" id="who"></span><span id="word"></span></div>
+    <div class="choices" id="choices"></div>
+  </div>
+</section>
+
+<!-- Modal: konec kola -->
+<div class="modal" id="modal-done">
+  <div class="card">
+    <div class="confetti" id="done-icon">🎉</div>
+    <h2 id="done-title"></h2>
+    <p id="done-text"></p>
+    <div class="modal-buttons">
+      <button class="btn big" id="btn-again">Znovu</button>
+      <button class="btn ghost" id="btn-home">Domů</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: nápověda -->
+<div class="modal" id="modal-help">
+  <div class="card help">
+    <h2>Jak se hraje</h2>
+    <ul>
+      <li>🍎 Přečti, co tvoje příšerka chce, a ťukni na správný obrázek. Příšerka vyroste.</li>
+      <li>👾 Ostatní příšerky rostou samy. Když budeš pomalý, přerostou tě.</li>
+      <li>😋 Větší příšerka sežere menší, když se dotknou. Ty taky!</li>
+      <li>👆 Ťukni do arény a tvoje příšerka tam poplave. Uteč velkým, lov malé.</li>
+      <li>🏆 Sežer dost příšerek a vyhrál jsi.</li>
+    </ul>
+    <div class="modal-buttons"><button class="btn big" id="help-close">Jasně!</button></div>
+  </div>
+</div>
+
+<!-- Modal: rodič -->
+<div class="modal" id="modal-parent">
+  <div class="card parent">
+    <div id="parent-gate">
+      <h2>Pro rodiče</h2>
+      <p>Kolik je <b id="gate-q"></b>?</p>
+      <input type="number" id="gate-a" inputmode="numeric">
+      <div class="modal-buttons"><button class="btn big" id="gate-ok">OK</button><button class="btn ghost" id="gate-cancel">Zpět</button></div>
+    </div>
+    <div id="parent-panel" hidden>
+      <h2>Nastavení</h2>
+      <label><input type="checkbox" id="opt-syll"> Ukazovat slabiky (MA-SO)</label>
+      <label><input type="checkbox" id="opt-tts"> Předčítat nahlas (🔊)</label>
+      <label><input type="checkbox" id="opt-sound"> Zvuky</label>
+      <label><input type="checkbox" id="opt-unlock"> Odemknout všechny levely</label>
+      <label>Tempo hry:
+        <select id="opt-tempo">
+          <option value="0.6">Pomalé</option>
+          <option value="1">Normální</option>
+          <option value="1.5">Rychlé</option>
+        </select>
+      </label>
+      <label>Kolik příšerek sežrat na výhru: <input type="number" id="opt-target" min="3" max="20"></label>
+      <h3>Vlastní slova</h3>
+      <p class="hint">Slabiky odděl pomlčkou, např. <code>ba-bič-ka</code>. Emoji nebo obrázek: vlož emoji.</p>
+      <div class="row"><input id="cw-word" placeholder="slo-vo"><input id="cw-emoji" placeholder="🧸" maxlength="8"><button class="btn" id="cw-add">+</button></div>
+      <ul id="cw-list"></ul>
+      <div class="modal-buttons">
+        <button class="btn ghost danger" id="btn-reset">Smazat postup</button>
+        <button class="btn big" id="parent-close">Hotovo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="words.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
