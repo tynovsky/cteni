@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Kouzelná slova</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Baloo+2:wght@700;800&family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- DOMŮ -->
+<section id="home" class="screen active">
+  <header class="title">
+    <h1>Kouzelná <span>slova</span></h1>
+    <p>Přečti slovo nahlas a ono se zjeví v kotlíku!</p>
+  </header>
+  <div class="warn" id="mic-warn" hidden></div>
+  <div class="worlds" id="worlds"></div>
+  <div class="home-buttons">
+    <button class="btn ghost" id="btn-help">❓ Jak se hraje</button>
+    <button class="btn ghost" id="btn-parent">⚙️ Rodič</button>
+  </div>
+</section>
+
+<!-- HRA -->
+<section id="game" class="screen">
+  <div class="topbar">
+    <button class="btn round" id="btn-back">←</button>
+    <div class="progress"><div class="bar" id="bar"></div><span id="bar-text"></span></div>
+    <button class="btn round" id="btn-speak" title="Přečti mi to">🔊</button>
+  </div>
+
+  <div class="stage">
+    <div class="bubble" id="bubble"><span id="word"></span></div>
+    <div class="scene">
+      <div class="monster-wrap">
+        <div class="monster" id="monster"></div>
+        <div class="monster-name" id="monster-name"></div>
+      </div>
+      <div class="cauldron">
+        <div class="conjure" id="conjure"></div>
+        <svg class="pot" viewBox="0 0 200 172" aria-hidden="true">
+          <rect x="44" y="126" width="15" height="34" rx="7" fill="#3a2d4a" transform="rotate(13 51 143)"/>
+          <rect x="141" y="126" width="15" height="34" rx="7" fill="#3a2d4a" transform="rotate(-13 148 143)"/>
+          <circle cx="20" cy="76" r="13" fill="none" stroke="#3a2d4a" stroke-width="8"/>
+          <circle cx="180" cy="76" r="13" fill="none" stroke="#3a2d4a" stroke-width="8"/>
+          <path d="M24,64 h152 v20 a76,68 0 0 1 -152,0 z" fill="#5a4570"/>
+          <ellipse cx="100" cy="64" rx="76" ry="19" fill="#3a2d4a"/>
+          <ellipse class="brew" cx="100" cy="66" rx="64" ry="14" fill="#7fe3d6"/>
+          <circle class="bub b1" cx="76" cy="64" r="7" fill="#d3fff8"/>
+          <circle class="bub b2" cx="106" cy="68" r="5" fill="#d3fff8"/>
+          <circle class="bub b3" cx="128" cy="63" r="6" fill="#d3fff8"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="micbar">
+    <button class="mic off" id="btn-mic">
+      <span class="ring"></span>
+      <span class="ico">🎤</span>
+    </button>
+    <div class="mic-side">
+      <div class="mic-label" id="mic-label">Ťukni a mluv</div>
+      <div class="heard" id="heard"></div>
+    </div>
+  </div>
+
+  <div class="choices" id="choices" hidden></div>
+</section>
+
+<!-- Modal: level hotov -->
+<div class="modal" id="modal-done">
+  <div class="card">
+    <div class="confetti">🎉</div>
+    <h2 id="done-title">Hotovo!</h2>
+    <p id="done-text"></p>
+    <div class="ate" id="done-ate"></div>
+    <div class="modal-buttons">
+      <button class="btn big" id="btn-next">Kouzlit dál</button>
+      <button class="btn ghost" id="btn-home">Domů</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: nápověda -->
+<div class="modal" id="modal-help">
+  <div class="card help">
+    <h2>Jak se hraje</h2>
+    <ul>
+      <li>🪄 V bublině je slovo. <b>Přečti ho nahlas</b> do mikrofonu.</li>
+      <li>🍲 Když to příšerka slyší, věc se zjeví v kotlíku.</li>
+      <li>😵 Když přeslechne, vykouzlí něco jiného — nevadí, zkus to znovu.</li>
+      <li>👆 Po dvou přeslechnutích se dole objeví obrázky, dá se ťuknout.</li>
+      <li>🔊 Tlačítko nahoře slovo přečte za tebe.</li>
+    </ul>
+    <p class="hint">Mikrofon funguje jen na zabezpečené stránce (https) a potřebuje internet.
+      Poprvé se prohlížeč zeptá na povolení — potvrď „Povolit“.</p>
+    <div class="modal-buttons"><button class="btn big" id="help-close">Jasně</button></div>
+  </div>
+</div>
+
+<!-- Modal: rodič -->
+<div class="modal" id="modal-parent">
+  <div class="card parent">
+    <div id="parent-gate">
+      <h2>Pro rodiče</h2>
+      <p>Kolik je <b id="gate-q"></b>?</p>
+      <input type="number" id="gate-a" inputmode="numeric">
+      <div class="modal-buttons"><button class="btn big" id="gate-ok">OK</button><button class="btn ghost" id="gate-cancel">Zpět</button></div>
+    </div>
+    <div id="parent-panel" hidden>
+      <h2>Nastavení</h2>
+      <label><input type="checkbox" id="opt-mic"> Ovládání hlasem (mikrofon)</label>
+      <label>Přísnost rozpoznávání:
+        <select id="opt-strict">
+          <option value="0">shovívavá – uzná i nepřesné</option>
+          <option value="1">normální</option>
+          <option value="2">přísná – jen přesně</option>
+        </select>
+      </label>
+      <label><input type="checkbox" id="opt-syll"> Ukazovat slabiky (MA-SO)</label>
+      <label><input type="checkbox" id="opt-tts"> Předčítat nahlas (🔊)</label>
+      <label><input type="checkbox" id="opt-sound"> Zvuky</label>
+      <label><input type="checkbox" id="opt-unlock"> Odemknout všechny levely</label>
+      <label>Kouzel na kolo: <input type="number" id="opt-goal" min="3" max="20"></label>
+      <h3>Vlastní slova</h3>
+      <p class="hint">Slabiky odděl pomlčkou, např. <code>ba-bič-ka</code>. K tomu emoji.</p>
+      <div class="row"><input id="cw-word" placeholder="slo-vo"><input id="cw-emoji" placeholder="🧸" maxlength="8"><button class="btn" id="cw-add">+</button></div>
+      <ul id="cw-list"></ul>
+      <div class="modal-buttons">
+        <button class="btn ghost danger" id="btn-reset">Smazat postup</button>
+        <button class="btn big" id="parent-close">Hotovo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="words.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
