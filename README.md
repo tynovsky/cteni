@@ -9,11 +9,13 @@ Hry na procvičování čtení pro začínající čtenáře (5–8 let). Static
 | 🍳 [Kouzelná kuchařka](kouzelna-kucharka/) | `kouzelna-kucharka/` | klidná – nakrm příšerku, sbírej příšerky do sbírky |
 | 👾 [Hladové příšerky](hladove-priserky/) | `hladove-priserky/` | akční – soupeřky rostou samy, větší žere menší |
 | 🪄 [Kouzelná slova](kouzelna-slova/) | `kouzelna-slova/` | hlasová – slovo se čte nahlas do mikrofonu |
+| 🔧 [Porucha](porucha/) | `porucha/` | opravárenská – hra se rozpadá a čtení ji spravuje |
 
-Všechny hry stojí na stejné bázi: příšerka chce slovo z bubliny. V prvních dvou ho dítě
-přečte a vybere správný obrázek, ve třetí ho přečte nahlas. Sdílejí slovník (`words.js`),
-světy (velká / malá / psací písmena), levely podle délky slov a rodičovské nastavení.
-Podrobnosti v README každé hry.
+První tři hry stojí na stejné bázi: příšerka chce slovo z bubliny. V prvních dvou ho dítě
+přečte a vybere správný obrázek, ve třetí ho přečte nahlas. Čtvrtá obrací zadání — slovo
+je poškozené a dítě ho skládá zpátky (chybějící písmeno, rozsypané slabiky, rozbité
+kódování). Všechny sdílejí slovník (`words.js`), světy (velká / malá / psací písmena),
+levely podle délky slov a rodičovské nastavení. Podrobnosti v README každé hry.
 
 Kouzelná slova navíc potřebují **https (nebo localhost) a internet** — rozpoznávání řeči
 běží na serveru prohlížeče. Bez toho se hra sama přepne na ťukání do obrázků.
