@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mikrofon – diagnostika</title>
+<style>
+  body { font: 16px/1.4 system-ui, sans-serif; margin: 0; padding: 16px; background: #fff7e6; color: #3b2f4a; }
+  h1 { font-size: 22px; margin: 0 0 10px; }
+  .box { background: #fff; border-radius: 14px; padding: 12px 14px; margin-bottom: 12px; box-shadow: 0 4px 0 rgba(59,47,74,.1); }
+  label { display: block; padding: 4px 0; }
+  input[type=checkbox] { width: 18px; height: 18px; vertical-align: middle; margin-right: 6px; }
+  input[type=text] { font: inherit; padding: 6px 8px; border: 2px solid #e6e0d6; border-radius: 8px; }
+  button { font: inherit; font-weight: 700; border: 0; border-radius: 12px; padding: 10px 18px; background: #8d5be0; color: #fff; cursor: pointer; margin-right: 8px; }
+  button.sec { background: #fff; color: #3b2f4a; box-shadow: inset 0 0 0 2px #ddd; }
+  #log { font: 13px/1.35 ui-monospace, Menlo, Consolas, monospace; white-space: pre-wrap; background: #2b2137; color: #e8e2f0; border-radius: 12px; padding: 12px; height: 46vh; overflow-y: auto; }
+  .env b { font-weight: 700; }
+  .ok { color: #2f8a5a; } .no { color: #c0392b; }
+  #state { font-size: 20px; font-weight: 800; }
+</style>
+</head>
+<body>
+<h1>🎤 Diagnostika mikrofonu</h1>
+
+<div class="box env" id="env"></div>
+
+<div class="box">
+  <label>Jazyk: <input type="text" id="lang" value="cs-CZ" size="8"></label>
+  <label><input type="checkbox" id="cont" checked> <b>continuous</b> – jedna dlouhá relace (bez něj Chrome při každém restartu pípne)</label>
+  <label><input type="checkbox" id="interim" checked> <b>interimResults</b> – průběžné výsledky</label>
+  <label><input type="checkbox" id="restart"> automaticky restartovat po <code>end</code></label>
+  <label><input type="checkbox" id="steal"> <b>otevřít vlastní getUserMedia stream</b> – simulace konfliktu (tohle podezřele rozbíjí rozpoznávání)</label>
+</div>
+
+<div class="box">
+  <button id="start">▶ Spustit</button>
+  <button id="stop" class="sec">■ Zastavit</button>
+  <button id="copy" class="sec">📋 Kopírovat log</button>
+  <button id="clear" class="sec">Smazat log</button>
+  <div style="margin-top:10px">Stav: <span id="state">—</span></div>
+</div>
+
+<div id="log"></div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null, stream = null, t0 = 0, ends = 0;
+
+function log(msg, cls) {
+  const t = t0 ? ((performance.now() - t0) / 1000).toFixed(2).padStart(6) : '  0.00';
+  const line = document.createElement('div');
+  line.textContent = `${t}s  ${msg}`;
+  if (cls) line.className = cls;
+  $('#log').appendChild(line);
+  $('#log').scrollTop = $('#log').scrollHeight;
+}
+function state(s) { $('#state').textContent = s; }
+
+$('#env').innerHTML =
+  `<b>SpeechRecognition:</b> ${SR ? '<span class="ok">je</span>' : '<span class="no">NENÍ (Firefox?)</span>'}<br>` +
+  `<b>secure context (https/localhost):</b> ${window.isSecureContext ? '<span class="ok">ano</span>' : '<span class="no">NE – mikrofon nepůjde</span>'}<br>` +
+  `<b>online:</b> ${navigator.onLine ? '<span class="ok">ano</span>' : '<span class="no">NE – rozpoznávání běží na serveru</span>'}<br>` +
+  `<b>origin:</b> ${location.origin}<br>` +
+  `<b>UA:</b> ${navigator.userAgent}`;
+
+async function start() {
+  if (!SR) { log('SpeechRecognition v tomhle prohlížeči není', 'no'); return; }
+  t0 = performance.now(); ends = 0;
+  if ($('#steal').checked) {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      log('vlastní getUserMedia stream OTEVŘEN (konflikt se simuluje)', 'no');
+    } catch (e) { log('getUserMedia selhalo: ' + e.name, 'no'); }
+  }
+  rec = new SR();
+  rec.lang = $('#lang').value.trim() || 'cs-CZ';
+  rec.continuous = $('#cont').checked;
+  rec.interimResults = $('#interim').checked;
+  rec.maxAlternatives = 5;
+  log(`start() lang=${rec.lang} continuous=${rec.continuous} interim=${rec.interimResults}`);
+
+  for (const ev of ['audiostart', 'soundstart', 'speechstart', 'speechend', 'soundend', 'audioend']) {
+    rec.addEventListener(ev, () => log(ev));
+  }
+  rec.onstart = () => { state('poslouchám'); log('onstart'); };
+  rec.onnomatch = () => log('onnomatch – nic nerozpoznáno', 'no');
+  rec.onerror = (e) => log('ONERROR: ' + e.error + (e.message ? ' – ' + e.message : ''), 'no');
+  rec.onresult = (e) => {
+    const r = e.results[e.results.length - 1];
+    const alts = [];
+    for (let i = 0; i < r.length; i++) alts.push(`"${r[i].transcript.trim()}" (${(r[i].confidence * 100).toFixed(0)}%)`);
+    log(`onresult ${r.isFinal ? 'FINAL' : 'průběžné'}: ${alts.join(' | ')}`, r.isFinal ? 'ok' : '');
+  };
+  rec.onend = () => {
+    ends++;
+    log(`onend (celkem ${ends}×)`);
+    state('stojí');
+    if ($('#restart').checked && ends < 20) setTimeout(() => { try { rec.start(); } catch (err) { log('restart selhal: ' + err.name, 'no'); } }, 400);
+  };
+  try { rec.start(); } catch (e) { log('start() vyhodil: ' + e.name + ' – ' + e.message, 'no'); }
+}
+function stop() {
+  $('#restart').checked = false;
+  try { rec && rec.abort(); } catch (e) { /* nic */ }
+  if (stream) { stream.getTracks().forEach((t) => t.stop()); stream = null; log('vlastní stream zavřen'); }
+  state('zastaveno');
+}
+$('#start').onclick = start;
+$('#stop').onclick = stop;
+$('#clear').onclick = () => { $('#log').innerHTML = ''; };
+$('#copy').onclick = () => {
+  const txt = $('#env').innerText + '\n\n' + $('#log').innerText;
+  navigator.clipboard.writeText(txt).then(() => log('log zkopírován do schránky', 'ok'), () => log('kopírování selhalo', 'no'));
+};
+</script>
+</body>
+</html>

@@ -218,7 +218,10 @@ function speak(text) {
 
 // ---------- mikrofon ----------
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-const MIC = { rec: null, want: false, live: false, dead: false, noPhrases: false, stream: null, ac: null, an: null, raf: 0, quiet: 0 };
+// Pozor: mikrofon si NEOTVÍRÁME sami (getUserMedia). Když běží vlastní stream,
+// rozpoznávač v Chrome zvuk nedostane – jen se pořád dokola restartuje a pípá.
+// Zpětnou vazbu „slyším tě“ proto bereme z událostí rozpoznávače.
+const MIC = { rec: null, want: false, live: false, dead: false, noPhrases: false, fails: 0 };
 
 function micUsable() { return !!SR && S.settings.mic && !MIC.dead; }
 function setMic(cls, label) {
@@ -237,14 +240,22 @@ function showHeard(text, interim) {
 function buildRec() {
   const rec = new SR();
   rec.lang = 'cs-CZ';
-  rec.continuous = false;
+  // continuous: jedna dlouhá relace. S false se po každé pauze relace ukončí,
+  // Chrome při každém dalším startu pípne a mezi starty je hluchý.
+  rec.continuous = true;
   rec.interimResults = true;
   rec.maxAlternatives = 5;
-  rec.onstart = () => { MIC.live = true; setMic('live', 'Poslouchám…'); startMeter(); };
+  rec.onstart = () => { MIC.live = true; setMic('live', 'Poslouchám…'); };
+  rec.onspeechstart = () => setMic('live hears', 'Slyším tě…');
+  rec.onspeechend = () => setMic('live', 'Poslouchám…');
+  rec.onnomatch = () => { MIC.fails++; };
   rec.onend = () => {
     MIC.live = false;
-    if (MIC.want && !G.busy && $('#game').classList.contains('active')) setTimeout(() => { if (MIC.want) tryStart(); }, 250);
-    else setMic(MIC.dead ? 'dead' : 'off', MIC.dead ? micDeadLabel() : 'Ťukni a mluv');
+    const playing = $('#game').classList.contains('active');
+    // pojistka: po 8 marných pokusech přestat (každý restart v Chrome pípne)
+    if (MIC.want && !G.busy && playing && MIC.fails < 8) { setTimeout(() => { if (MIC.want) tryStart(); }, 400); return; }
+    if (MIC.fails >= 8) { MIC.want = false; showRescue(); }
+    setMic(MIC.dead ? 'dead' : 'off', MIC.dead ? micDeadLabel() : 'Ťukni a mluv');
   };
   rec.onerror = (e) => onMicError(e.error);
   rec.onresult = onMicResult;
@@ -258,7 +269,8 @@ function micDeadLabel() {
   return 'Mikrofon nejde';
 }
 function onMicError(err) {
-  if (err === 'aborted' || err === 'no-speech') return;               // onend to restartuje
+  if (err === 'aborted') return;
+  if (err === 'no-speech') { MIC.fails++; return; }                   // onend to restartuje
   if (err === 'phrases-not-supported') { MIC.noPhrases = true; return; }
   if (err === 'not-allowed' || err === 'service-not-allowed' || err === 'audio-capture' || err === 'network' || err === 'language-not-supported') {
     micDeadReason = err === 'service-not-allowed' || err === 'audio-capture' ? 'not-allowed' : err;
@@ -282,7 +294,7 @@ function tryStart() {
   applyPhrases(MIC.rec);
   try { MIC.rec.start(); } catch { /* už běží */ }
 }
-function startMic() { if (!micUsable()) { setMic(SR ? 'dead' : 'dead', SR ? micDeadLabel() : 'Mikrofon nejde'); return; } MIC.want = true; tryStart(); }
+function startMic() { if (!micUsable()) { setMic('dead', SR ? micDeadLabel() : 'Mikrofon nejde'); return; } MIC.want = true; MIC.fails = 0; tryStart(); }
 function stopMic() {
   MIC.want = false;
   try { MIC.rec && MIC.rec.abort(); } catch { /* nic */ }
@@ -291,6 +303,7 @@ function stopMic() {
 }
 function onMicResult(e) {
   const res = e.results[e.results.length - 1];
+  MIC.fails = 0;
   const texts = [];
   for (let i = 0; i < res.length; i++) texts.push(res[i].transcript);
   if (!texts.length) return;
@@ -304,36 +317,6 @@ function onMicResult(e) {
     if (!other) other = v.other;
   }
   misheard(other);
-}
-
-// ukazatel hlasitosti – dítě hned vidí „slyším tě“, než doběhne rozpoznávání (~1 s)
-async function startMeter() {
-  if (MIC.an || !navigator.mediaDevices) return;
-  try {
-    MIC.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    MIC.ac = new (window.AudioContext || window.webkitAudioContext)();
-    const src = MIC.ac.createMediaStreamSource(MIC.stream);
-    MIC.an = MIC.ac.createAnalyser(); MIC.an.fftSize = 512;
-    src.connect(MIC.an);
-    tickMeter();
-  } catch { /* ukazatel je bonus, hra jede i bez něj */ }
-}
-function tickMeter() {
-  if (!MIC.an) return;
-  const buf = new Uint8Array(MIC.an.frequencyBinCount);
-  MIC.an.getByteTimeDomainData(buf);
-  let sum = 0;
-  for (const v of buf) { const d = (v - 128) / 128; sum += d * d; }
-  const lvl = MIC.live ? clamp(Math.sqrt(sum / buf.length) * 4, 0, 1) : 0;
-  document.documentElement.style.setProperty('--lvl', lvl.toFixed(3));
-  MIC.raf = requestAnimationFrame(tickMeter);
-}
-function stopMeter() {
-  cancelAnimationFrame(MIC.raf); MIC.raf = 0;
-  if (MIC.stream) { MIC.stream.getTracks().forEach((t) => t.stop()); MIC.stream = null; }
-  if (MIC.ac) { try { MIC.ac.close(); } catch { /* nic */ } MIC.ac = null; }
-  MIC.an = null;
-  document.documentElement.style.setProperty('--lvl', '0');
 }
 
 // ---------- obrazovky ----------
@@ -509,11 +492,11 @@ $('#btn-speak').onclick = () => { if (G.word) speak(plainText(G.word, G.tpl)); }
 $('#bubble').onclick = () => { if (G.word && S.settings.tts) speak(plainText(G.word, G.tpl)); };
 function leaveGame() {
   G.busy = true; G.word = null;
-  stopMic(); stopMeter();
+  stopMic();
   try { speechSynthesis.cancel(); } catch { /* nic */ }
   renderHome(); show('home');
 }
-document.addEventListener('visibilitychange', () => { if (document.hidden) { stopMic(); stopMeter(); } });
+document.addEventListener('visibilitychange', () => { if (document.hidden) stopMic(); });
 
 // ---------- nápověda ----------
 $('#btn-help').onclick = () => $('#modal-help').classList.add('open');
@@ -560,7 +543,7 @@ $('#parent-close').onclick = () => {
   };
   save();
   $('#modal-parent').classList.remove('open');
-  if (!S.settings.mic) { stopMic(); stopMeter(); }
+  if (!S.settings.mic) stopMic();
   renderHome();
 };
 $('#btn-reset').onclick = () => { if (confirm('Opravdu smazat všechen postup?')) { localStorage.removeItem(KEY); S = load(); $('#modal-parent').classList.remove('open'); renderHome(); } };
