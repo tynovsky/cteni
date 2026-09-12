@@ -124,6 +124,11 @@ function judge(text) {
   const other = best.w && best.w !== G.word && best.d <= tol(norm(letters(best.w.w)).length) ? best.w : null;
   return { ok: false, other };
 }
+// „ma“ z „maso“: dítě čte po slabikách a rozpoznávač pošle útržek. Není to chyba, jen rozečtené slovo.
+function isPartial(text) {
+  const nw = norm(letters(G.word.w));
+  return heardForms(text).some((h) => h && h !== nw && (nw.startsWith(h) || h.startsWith(nw)));
+}
 
 // ---------- emoji ikony (Twemoji přes CDN, fallback nativní emoji) ----------
 function emojiUrl(e) {
@@ -310,13 +315,21 @@ function onMicResult(e) {
   if (!res.isFinal) { showHeard(texts[0].trim(), true); return; }
   showHeard(texts[0].trim(), false);
   if (G.busy) return;
-  let other = null;
+  let other = null, partial = false;
   for (const t of texts) {
     const v = judge(t);
     if (v.ok) { success(); return; }
-    if (!other) other = v.other;
+    if (v.other && !other) other = v.other;
+    if (isPartial(t)) partial = true;
   }
-  misheard(other);
+  // Při souvislém poslechu chodí i útržky („ma“ z „maso“). Za přeslechnutí je počítáme
+  // jen tehdy, když je jasně blíž JINÉ známé slovo – jinak by ťukací záchrana vyskočila
+  // i dítěti, které slovo nakonec přečte správně.
+  // Rozečtené slovo má přednost: útržek může být náhodou blízko jinému slovu
+  // („cokol“ z „čokoláda“ je 2 písmena od „kokos“) a dítě by dostalo chybu za to,
+  // že se nadechlo uprostřed slova.
+  if (partial) showHeard('…pokračuj', false);
+  else if (other) misheard(other);
 }
 
 // ---------- obrazovky ----------
@@ -346,7 +359,8 @@ function renderHome() {
 }
 
 // ---------- kolo ----------
-const G = { world: 0, tier: 0, word: null, tpl: null, distract: [], fed: 0, ate: [], misses: 0, taps: 0, busy: false, seed: 0, name: '' };
+const RESCUE_AFTER = 25;   // s bez úspěchu → nabídnout ťukání, ať dítě neuvízne
+const G = { world: 0, tier: 0, word: null, tpl: null, distract: [], fed: 0, ate: [], misses: 0, taps: 0, busy: false, seed: 0, name: '', rescueT: 0 };
 
 function startLevel(w, t) {
   G.world = w; G.tier = t; G.fed = 0; G.ate = []; G.busy = false;
@@ -406,6 +420,8 @@ function nextWord() {
   });
   showHeard('', false);
   $('#conjure').className = 'conjure';
+  clearTimeout(G.rescueT);
+  G.rescueT = setTimeout(showRescue, RESCUE_AFTER * 1000);
   if (MIC.dead || !micUsable()) showRescue();
   if (MIC.want) tryStart(); else setMic(MIC.dead ? 'dead' : 'off', MIC.dead ? micDeadLabel() : 'Ťukni a mluv');
   drawMonster(MIC.live ? 'listen' : 'idle');
@@ -424,6 +440,7 @@ function conjure(emoji, good) {
 function success() {
   if (G.busy) return;
   G.busy = true;
+  clearTimeout(G.rescueT);
   stopMic();
   sfx.ok(); sfx.magic();
   conjure(G.word.e, true);
@@ -492,6 +509,7 @@ $('#btn-speak').onclick = () => { if (G.word) speak(plainText(G.word, G.tpl)); }
 $('#bubble').onclick = () => { if (G.word && S.settings.tts) speak(plainText(G.word, G.tpl)); };
 function leaveGame() {
   G.busy = true; G.word = null;
+  clearTimeout(G.rescueT);
   stopMic();
   try { speechSynthesis.cancel(); } catch { /* nic */ }
   renderHome(); show('home');

@@ -12,8 +12,13 @@ Tady se ale nevybírá obrázek — dítě slovo **přečte do mikrofonu** a vě
 - 🍲 Když příšerka slovo pozná, věc se vykouzlí v kotlíku a přibude do počtu.
 - 😵 Když přeslechne, **vykouzlí to, co slyšela** — řekneš „MASO“, objeví se máslo.
   Příšerka se tváří zmateně, dítě se zasměje a čte znovu.
-- 👆 Po dvou přeslechnutích (nebo když mikrofon nejde) se dole objeví obrázky k ťuknutí.
-  Dítě nikdy neuvízne.
+- 👆 Po dvou přeslechnutích, po 25 s bez úspěchu (nebo když mikrofon nejde) se dole
+  objeví obrázky k ťuknutí. Dítě nikdy neuvízne.
+
+Za přeslechnutí se počítá **jen** situace, kdy je přepisu jasně blíž jiné známé slovo.
+Rozpoznávač při souvislém poslechu posílá i útržky („ma“ z „maso“) — ty se berou jako
+rozečtené slovo, ne jako chyba, jinak by ťukací záchrana vyskakovala i dětem, které
+slovo nakonec přečtou správně.
 - 🔊 Tlačítko nahoře slovo přečte.
 - 🏆 Kolo končí po N kouzlech (výchozí 8).
 
