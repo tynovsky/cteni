@@ -1,4 +1,4 @@
-/* Robůtek – dítě čte povel nahlas, robot ho provede. Vanilla JS, bez závislostí. */
+/* Robůtek – kuličková dráha. Dítě čte povel nahlas, robot ho provede, kulička dojede dál. */
 'use strict';
 
 // ---------- util ----------
@@ -15,7 +15,7 @@ const letters = (w) => w.replace(/-/g, '');
 // ---------- perzistence ----------
 const KEY = 'robutek-v1';
 const DEFAULTS = {
-  settings: { syll: true, tts: true, sound: true, unlock: false, goal: 8, mic: true, strict: 1 },
+  settings: { syll: true, tts: true, sound: true, unlock: false, goal: 6, mic: true, strict: 1 },
   progress: {},      // levelKey -> { wins: n }
 };
 let S = load();
@@ -36,10 +36,10 @@ const WORLDS = [
 ];
 // Level neurčuje délku slov, ale kolik informace musí dítě z cedulky vytáhnout.
 const TIERS = [
-  { name: 'Jedno slovo', icon: '🐣', nouns: ['button'], attrs: ['color'], n: 5, cmds: 1 },
-  { name: 'Dvě slova', icon: '🐥', nouns: ['button'], attrs: ['color', 'size'], n: 6, cmds: 1 },
-  { name: 'Víc věcí', icon: '🐔', nouns: ['button', 'wheel', 'lever', 'lamp', 'lid'], attrs: ['color', 'size'], n: 8, cmds: 1 },
-  { name: 'Dva povely', icon: '📖', nouns: ['button', 'wheel', 'lever', 'lamp', 'lid'], attrs: ['color', 'size'], n: 8, cmds: 2 },
+  { name: 'Barva', icon: '🐣', types: 1, attrs: ['color'], cmds: 1 },
+  { name: 'Barva a velikost', icon: '🐥', types: 1, attrs: ['color', 'size'], cmds: 1 },
+  { name: 'Víc dílů', icon: '🐔', types: 2, attrs: ['color', 'size'], cmds: 1 },
+  { name: 'Dva povely', icon: '📖', types: 2, attrs: ['color', 'size'], cmds: 2 },
 ];
 const levelKey = (w, t) => `${w}-${t}`;
 const levelOrder = [];
@@ -48,89 +48,30 @@ function winsFor(k) { return (S.progress[k] || {}).wins || 0; }
 function stars(k) { const c = winsFor(k); return c >= 6 ? 3 : c >= 3 ? 2 : c >= 1 ? 1 : 0; }
 function isUnlocked(k) { if (S.settings.unlock) return true; const i = levelOrder.indexOf(k); return i === 0 || winsFor(levelOrder[i - 1]) >= 1; }
 
-// ---------- generátor kola ----------
-// Dvě podmínky, bez kterých by se dalo hádat místo čtení:
-//   1. jednoznačnost – celému popisu vyhovuje právě jeden ovladač
-//   2. každé slovo nosné – vyškrtnutím kteréhokoli slova vzniknou aspoň dva kandidáti
-//      (tedy: k „MALÉ ČERVENÉ TLAČÍTKO“ je na stroji i velké červené a malé modré)
-const COLORS = Object.keys(VOCAB.colors);
-const SIZES = Object.keys(VOCAB.sizes);
-const SHAPES = Object.keys(VOCAB.shapes);
-const sameDesc = (a, b) => a.noun === b.noun && a.color === b.color && a.size === b.size && a.shape === b.shape;
-function matches(c, desc) {
-  for (const k of ['noun', 'color', 'size', 'shape']) if (desc[k] !== undefined && desc[k] !== null && c[k] !== desc[k]) return false;
-  return true;
+// ---------- text cedulky (se shodou rodu) ----------
+// „přehoď červenOU výhybkU“ × „sklop červenÝ most“ × „roztoč červenÉ kolečko“.
+// Tvar se bere podle rodu dílu – proto má ADJ tři sloupce.
+function partWords(d) {
+  const P = PARTS[d.type], g = P.g;
+  const out = [P.verb];
+  if (d.size) out.push(ADJ.sizes[d.size][g]);
+  out.push(ADJ.colors[d.color][g]);
+  out.push(P.acc);
+  return out;
 }
-function countMatching(controls, desc) { return controls.filter((c) => matches(c, desc)).length; }
-
-function randomDesc(T) {
-  const noun = pick(T.nouns);
-  const d = { noun, color: pick(COLORS), size: pick(SIZES), shape: null };
-  if (VOCAB.nouns[noun].shapes) d.shape = pick(SHAPES);
-  return d;
-}
-// popis = to, co bude na cedulce (podmnožina vlastností)
-function descOf(c, T) {
-  const d = { noun: c.noun, color: c.color };
-  if (T.attrs.includes('size')) d.size = c.size;
-  return d;
-}
-function flip(val, all) { const o = all.filter((x) => x !== val); return pick(o); }
-
-function buildControls(T) {
-  for (let attempt = 0; attempt < 300; attempt++) {
-    const target = randomDesc(T);
-    const list = [target];
-    // dvojče lišící se právě jednou vlastností z popisu → to slovo je nutné přečíst
-    const push = (d) => { if (!list.some((x) => sameDesc(x, d))) list.push(d); };
-    push({ ...target, color: flip(target.color, COLORS) });
-    if (T.attrs.includes('size')) push({ ...target, size: flip(target.size, SIZES) });
-    if (T.nouns.length > 1) {
-      const n2 = flip(target.noun, T.nouns);
-      push({ ...target, noun: n2, shape: VOCAB.nouns[n2].shapes ? pick(SHAPES) : null });
-    }
-    let guard = 0;
-    while (list.length < T.n && guard++ < 200) push(randomDesc(T));
-    if (list.length < T.n) continue;
-
-    const desc = descOf(target, T);
-    if (countMatching(list, desc) !== 1) continue;
-    // každá vlastnost, která se na stroji liší, musí být v popisu nutná
-    let ok = true;
-    for (const k of Object.keys(desc)) {
-      const values = new Set(list.map((c) => c[k]));
-      if (values.size < 2) continue;
-      const without = { ...desc }; delete without[k];
-      if (countMatching(list, without) < 2) { ok = false; break; }
-    }
-    if (!ok) continue;
-    return { controls: shuffle(list), target: list[0], desc };
-  }
-  return null;
-}
-
-// ---------- text cedulky ----------
 function wordHtml(w, world) {
   const W = WORLDS[world];
   const syl = S.settings.syll && world !== 2;   // u psacího nedělit, kazí to spojení písmen
   const parts = w.split('-').map((p) => W.fmt(p));
   return syl ? parts.join('<span class="syl">·</span>') : parts.join('');
 }
-function descWords(desc) {
-  const out = [VOCAB.verbs[VOCAB.nouns[desc.noun].verb].w];
-  if (desc.size) out.push(VOCAB.sizes[desc.size].w);
-  if (desc.shape) out.push(VOCAB.shapes[desc.shape].w);
-  out.push(VOCAB.colors[desc.color].w);
-  out.push(VOCAB.nouns[desc.noun].w);
-  return out;
-}
 function ticketHtml(t, world) {
   if (t.kind === 'screw') return `<span class="screw">${wordHtml(SCREW.verb, world)} ${wordHtml(SCREW.w, world)}</span>`;
-  return t.descs.map((d) => descWords(d).map((w) => wordHtml(w, world)).join(' ')).join(' <b>a</b> ');
+  return t.descs.map((d) => partWords(d).map((w) => wordHtml(w, world)).join(' ')).join(' <b>a</b> ');
 }
 function ticketPlain(t) {
   if (t.kind === 'screw') return `${SCREW.verb} ${letters(SCREW.w)}`;
-  return t.descs.map((d) => descWords(d).map(letters).join(' ')).join(' a ');
+  return t.descs.map((d) => partWords(d).map(letters).join(' ')).join(' a ');
 }
 
 // ---------- rozbor povelu z řeči ----------
@@ -152,33 +93,35 @@ function tol(n) {
   const base = n <= 4 ? 1 : n <= 7 ? 2 : 3;
   return s === 0 ? base + 1 : base;
 }
-// Slovník je uzavřený (~20 slov), takže rozpoznávání je řádově spolehlivější
-// než u volných podstatných jmen. Token uznáme jen když je jeden kandidát jasně nejblíž.
+// Slovník je uzavřený, zato má od každého přídavného jména tři tvary. Tvary téhož
+// slova si jsou blízko (modrý/modré), ale ukazují na stejný klíč – shoda mezi nimi
+// tedy není nejednoznačnost.
 const LEXICON = (() => {
-  const out = [];
-  for (const [k, v] of Object.entries(VOCAB.verbs)) out.push({ cat: 'verb', key: k, n: norm(letters(v.w)) });
-  for (const [k, v] of Object.entries(VOCAB.colors)) out.push({ cat: 'color', key: k, n: norm(letters(v.w)) });
-  for (const [k, v] of Object.entries(VOCAB.sizes)) out.push({ cat: 'size', key: k, n: norm(letters(v.w)) });
-  for (const [k, v] of Object.entries(VOCAB.shapes)) out.push({ cat: 'shape', key: k, n: norm(letters(v.w)) });
-  for (const [k, v] of Object.entries(VOCAB.nouns)) out.push({ cat: 'noun', key: k, n: norm(letters(v.w)) });
-  out.push({ cat: 'screwverb', key: 'vrat', n: norm(SCREW.verb) });
-  out.push({ cat: 'screw', key: 'screw', n: norm(letters(SCREW.w)) });
+  const out = [], seen = new Set();
+  const add = (cat, key, w) => { const n = norm(letters(w)); const id = cat + ':' + key + ':' + n; if (n && !seen.has(id)) { seen.add(id); out.push({ cat, key, n }); } };
+  for (const [k, v] of Object.entries(ADJ.colors)) for (const g of ['m', 'f', 'n']) add('color', k, v[g]);
+  for (const [k, v] of Object.entries(ADJ.sizes)) for (const g of ['m', 'f', 'n']) add('size', k, v[g]);
+  for (const [k, v] of Object.entries(PARTS)) { add('verb', k, v.verb); add('type', k, v.acc); add('type', k, v.nom); }
+  add('screwverb', 'vrat', SCREW.verb);
+  add('screw', 'screw', SCREW.w);
   return out;
 })();
 function matchToken(tok) {
   const h = norm(tok);
   if (!h) return null;
-  let best = null, bd = Infinity, second = Infinity;
+  let best = null, bd = Infinity, secondKey = null, sd = Infinity;
   for (const e of LEXICON) {
     const d = lev(h, e.n);
-    if (d < bd) { second = bd; bd = d; best = e; }
-    else if (d < second) second = d;
+    if (d < bd) { if (!best || best.cat + best.key !== e.cat + e.key) { sd = bd; secondKey = best; } bd = d; best = e; }
+    else if (d < sd && (!best || e.cat + e.key !== best.cat + best.key)) { sd = d; secondKey = e; }
   }
   if (!best || bd > tol(best.n.length)) return null;
-  if (bd === second) return null;             // dvě slova stejně blízko → radši nic
+  if (secondKey && sd === bd) return null;      // dvě různá slova stejně blízko → radši nic
   return best;
 }
-// Vrátí pole povelů v pořadí, jak zazněly. Nový povel začíná slovesem.
+// Vrátí povely v pořadí, jak zazněly. Nový povel začíná slovesem.
+// Sloveso se ale do popisu NEPROMÍTÁ: „přehoď“ sice patří jen k výhybce, ale kdyby
+// z něj šel odvodit díl, dítě by mohlo poslední slovo na cedulce vynechat.
 function parseCommand(text) {
   const cmds = [];
   let cur = null;
@@ -192,23 +135,50 @@ function parseCommand(text) {
   }
   return cmds.filter((c) => Object.keys(c).length);
 }
-// Co robůtek z povelu pochopí: 'none' nic, 'many' neví která, jinak konkrétní ovladač.
-function resolve(cmd, controls) {
+const matches = (p, desc) => ['type', 'color', 'size'].every((k) => desc[k] === undefined || p[k] === desc[k]);
+const countMatching = (parts, desc) => parts.filter((p) => matches(p, desc)).length;
+
+function resolve(cmd, parts) {
   if (cmd.screw) return { screw: true };
   const desc = {};
-  for (const k of ['noun', 'color', 'size', 'shape']) if (cmd[k]) desc[k] = cmd[k];
-  // Samotné sloveso: dítě řeklo „zmáčkni“ a dost. Robůtek neví CO – a není to
-  // totéž jako „to tu nemám“, proto zvláštní odpověď.
+  for (const k of ['type', 'color', 'size']) if (cmd[k]) desc[k] = cmd[k];
+  // Samotné sloveso: dítě řeklo „přehoď“ a dost. Robůtek neví CO.
   if (!Object.keys(desc).length) return { kind: cmd.verb ? 'what' : 'none' };
-  const hits = controls.filter((c) => matches(c, desc));
+  const hits = parts.filter((p) => matches(p, desc));
   if (!hits.length) return { kind: 'none' };
   if (hits.length > 1) return { kind: 'many' };
-  return { kind: 'one', control: hits[0] };
+  return { kind: 'one', part: hits[0] };
 }
 
-// ---------- příšerka do sbírky ----------
+// ---------- generátor dráhy ----------
+// Díly tvoří mřížku (typy × velikosti × barvy). Ke každému dílu tak existuje jiný,
+// který se od něj liší právě jedním slovem – proto se žádné slovo na cedulce nedá
+// vynechat ani uhodnout. Kdyby se díly losovaly nezávisle, tahle vlastnost by padla.
+function gridSizes(K, T) {
+  const types = Math.min(T.types, Object.keys(PARTS).length);
+  const sizes = T.attrs.includes('size') ? 2 : 1;
+  let colors = Math.round(K / (types * sizes));
+  colors = clamp(colors, 2, Object.keys(ADJ.colors).length);
+  return { types, sizes, colors };
+}
+function buildParts(T, K) {
+  const g = gridSizes(K, T);
+  const types = shuffle(Object.keys(PARTS)).slice(0, g.types);
+  const sizes = g.sizes === 2 ? Object.keys(ADJ.sizes) : [pick(Object.keys(ADJ.sizes))];
+  const colors = shuffle(Object.keys(ADJ.colors)).slice(0, g.colors);
+  const out = [];
+  for (const type of types) for (const size of sizes) for (const color of colors) out.push({ type, color, size });
+  return shuffle(out);
+}
+function descOf(p, T) {
+  const d = { type: p.type, color: p.color };
+  if (T.attrs.includes('size')) d.size = p.size;
+  return d;
+}
+
+// ---------- příšerka z koše ----------
 const PALETTE = [['#ff8fab', '#e0527a'], ['#8ed6ff', '#3b9edb'], ['#b6e388', '#6db33f'], ['#ffd166', '#e0a020'], ['#c8a2ff', '#8d5be0'], ['#ffb26b', '#e07b2a'], ['#7fe3d6', '#2ab5a5']];
-function monsterSVG(seed, mood = 'happy') {
+function monsterSVG(seed) {
   const r = mulberry32(seed);
   const [c1, c2] = PALETTE[Math.floor(r() * PALETTE.length)];
   const N = 8, pts = [];
@@ -230,9 +200,7 @@ function monsterSVG(seed, mood = 'happy') {
     const y = eyes === 3 && i === 1 ? 62 : 78;
     eyeSvg += `<circle cx="${x}" cy="${y}" r="${eyeR}" fill="#fff"/><circle cx="${x + 3}" cy="${y + 3}" r="${eyeR * 0.5}" fill="#2b2137"/>`;
   });
-  const mouth = mood === 'happy'
-    ? `<path d="M70,118 Q100,160 130,118 Z" fill="#5a1f3a"/><ellipse cx="100" cy="140" rx="14" ry="8" fill="#ff7b9c"/>`
-    : `<path d="M75,122 Q100,148 125,122" stroke="#5a1f3a" stroke-width="6" fill="none" stroke-linecap="round"/>`;
+  const mouth = `<path d="M70,118 Q100,160 130,118 Z" fill="#5a1f3a"/><ellipse cx="100" cy="140" rx="14" ry="8" fill="#ff7b9c"/>`;
   const feet = `<ellipse cx="78" cy="182" rx="18" ry="9" fill="${c2}"/><ellipse cx="122" cy="182" rx="18" ry="9" fill="${c2}"/>`;
   return `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">${feet}${extras}<path d="${d}" fill="${c1}" stroke="${c2}" stroke-width="5"/>${eyeSvg}${mouth}</svg>`;
 }
@@ -251,8 +219,10 @@ function beep(freq, dur = 0.12, type = 'sine', vol = 0.2, when = 0) {
 }
 const sfx = {
   print: () => { beep(300, .05, 'square', .08); beep(340, .05, 'square', .08, .06); beep(300, .05, 'square', .08, .12); },
-  click: () => { beep(520, .06, 'square', .14); beep(700, .1, 'triangle', .12, .05); },
-  good: () => { beep(523, .1, 'triangle', .16); beep(784, .14, 'triangle', .16, .09); },
+  fix: () => { beep(520, .06, 'square', .14); beep(700, .1, 'triangle', .12, .05); },
+  roll: () => beep(90, .3, 'triangle', .05),
+  drop: () => { beep(240, .12, 'triangle', .12); beep(150, .2, 'sine', .1, .1); },
+  bell: () => { beep(1320, .35, 'sine', .18); beep(1760, .3, 'sine', .12, .08); },
   steam: () => { beep(1200, .5, 'sawtooth', .05); beep(900, .4, 'sawtooth', .04, .1); },
   shrug: () => { beep(400, .1, 'sine', .1); beep(300, .14, 'sine', .1, .1); },
   fanfare: () => [523, 659, 784, 1047].forEach((f, i) => beep(f, .25, 'sine', .2, i * .12)),
@@ -275,7 +245,7 @@ function speak(text) {
 
 // ---------- mikrofon ----------
 // Mikrofon si NEOTVÍRÁME sami (getUserMedia) – vlastní stream by rozpoznávači v Chrome
-// sebral zvuk a ten by se jen pořád restartoval.
+// sebral zvuk a ten by se jen pořád restartoval a pípal.
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 const MIC = { rec: null, want: false, live: false, dead: false, noPhrases: false, fails: 0 };
 let micDeadReason = '';
@@ -327,7 +297,6 @@ function onMicError(err) {
     micDeadReason = err === 'service-not-allowed' || err === 'audio-capture' ? 'not-allowed' : err;
     MIC.dead = true; MIC.want = false; A.tapOk = true;
     setMic('dead', micDeadLabel());
-    $('#micbar').hidden = false;
   }
 }
 function applyPhrases(rec) {
@@ -365,114 +334,144 @@ function onMicResult(e) {
   }
 }
 
-// ---------- stroj a robůtek ----------
+// ---------- stavba dráhy ----------
 const G = { world: 0, tier: 0 };
-const A = { controls: [], queue: [], done: 0, pressure: 0, busy: false, running: false, step: 0, tapOk: false, seed: 0 };
+const A = { parts: [], queue: [], step: 0, busy: false, running: false, tapOk: false, seed: 0, reach: 0 };
 
-function drawControl(c) {
-  const col = VOCAB.colors[c.color], k = VOCAB.sizes[c.size].k;
-  const g = document.createElementNS(SVGNS, 'g');
-  g.setAttribute('class', 'ctrl');
-  g.setAttribute('transform', `translate(${c.x},${c.y})`);
-  const r = 24 * k;
-  let inner = '';
-  if (c.noun === 'button') {
-    inner = c.shape === 'square'
-      ? `<rect x="${-r}" y="${-r}" width="${r * 2}" height="${r * 2}" rx="6" fill="${col.hex}" stroke="${col.dark}" stroke-width="4"/>
-         <rect x="${-r + 6}" y="${-r + 5}" width="${r * 2 - 12}" height="${r * 0.7}" rx="4" fill="#fff" opacity=".25"/>`
-      : `<circle r="${r}" fill="${col.hex}" stroke="${col.dark}" stroke-width="4"/>
-         <ellipse cx="0" cy="${-r * 0.35}" rx="${r * 0.55}" ry="${r * 0.3}" fill="#fff" opacity=".3"/>`;
-  } else if (c.noun === 'wheel') {
-    inner = `<circle r="${r}" fill="none" stroke="${col.hex}" stroke-width="${7 * k}"/>
-             <circle r="${r * 0.28}" fill="${col.dark}"/>
-             <path d="M0,${-r} V${r} M${-r},0 H${r}" stroke="${col.hex}" stroke-width="${5 * k}"/>`;
-  } else if (c.noun === 'lever') {
-    inner = `<rect x="${-4 * k}" y="${-r}" width="${8 * k}" height="${r * 1.8}" rx="3" fill="${col.dark}"/>
-             <circle cy="${-r}" r="${9 * k}" fill="${col.hex}" stroke="${col.dark}" stroke-width="3"/>
-             <rect x="${-r * 0.6}" y="${r * 0.75}" width="${r * 1.2}" height="${8 * k}" rx="3" fill="#8b9bb0"/>`;
-  } else if (c.noun === 'lamp') {
-    inner = `<circle class="bulb" r="${r * 0.8}" fill="${col.hex}" stroke="${col.dark}" stroke-width="3" opacity=".55"/>
-             <rect x="${-r * 0.45}" y="${r * 0.6}" width="${r * 0.9}" height="${7 * k}" rx="3" fill="#8b9bb0"/>`;
-  } else {
-    inner = `<rect x="${-r}" y="${-r * 0.75}" width="${r * 2}" height="${r * 1.5}" rx="7" fill="${col.hex}" stroke="${col.dark}" stroke-width="4"/>
-             <path d="M${-r * 0.5},${-r * 0.75} h${r}" stroke="${col.dark}" stroke-width="5" stroke-linecap="round"/>`;
+function partShape(p) {
+  const c = ADJ.colors[p.color], k = ADJ.sizes[p.size].k, r = 18 * k;
+  if (p.type === 'switch') {
+    return `<g class="pbody"><rect x="${-r}" y="-4" width="${r * 2}" height="8" rx="4" fill="${c.hex}" stroke="${c.dark}" stroke-width="2"/>
+            <path d="M${-r * 0.2},0 L${r},${-r * 0.9}" stroke="${c.hex}" stroke-width="7" stroke-linecap="round"/>
+            <circle r="5" fill="${c.dark}"/></g>`;
   }
-  g.innerHTML = inner + `<circle class="hit" r="${Math.max(r, 22)}"/>`;
-  g.onclick = () => { if (A.tapOk && !A.busy && A.running) obeyControl(c); };
-  c.el = g;
-  return g;
+  if (p.type === 'flap') {
+    return `<g class="pbody"><rect x="${-r * 0.3}" y="${-r * 1.5}" width="${r * 0.8}" height="${r * 1.5}" rx="3" fill="${c.hex}" stroke="${c.dark}" stroke-width="2"/>
+            <circle cy="0" r="4" fill="${c.dark}"/></g>`;
+  }
+  if (p.type === 'bridge') {
+    return `<g class="pbody"><rect x="${-r}" y="-5" width="${r * 2}" height="10" rx="3" fill="${c.hex}" stroke="${c.dark}" stroke-width="2"/>
+            <path d="M${-r * 0.5},-5 v10 M${r * 0.5},-5 v10" stroke="${c.dark}" stroke-width="2"/></g>`;
+  }
+  if (p.type === 'chute') {
+    return `<g class="pbody"><path d="M${-r},${-r * 0.5} L${-r * 0.6},6 L${r * 0.6},6 L${r},${-r * 0.5}" fill="none" stroke="${c.hex}" stroke-width="6" stroke-linejoin="round"/></g>`;
+  }
+  return `<g class="pbody"><circle r="${r * 0.8}" fill="none" stroke="${c.hex}" stroke-width="6"/>
+          <path d="M0,${-r * 0.8} V${r * 0.8} M${-r * 0.8},0 H${r * 0.8}" stroke="${c.hex}" stroke-width="4"/>
+          <circle r="3" fill="${c.dark}"/></g>`;
 }
 
-function buildMachine(round) {
+function buildScene() {
   const svg = $('#svg');
-  svg.setAttribute('viewBox', MACHINE.view);
-  svg.innerHTML = MACHINE.body;
-  const slots = shuffle(MACHINE.slots).slice(0, round.controls.length);
-  A.controls = round.controls.map((d, i) => Object.assign({}, d, { x: slots[i].x, y: slots[i].y, id: 'c' + i }));
-  A.controls.forEach((c) => svg.appendChild(drawControl(c)));
+  svg.setAttribute('viewBox', TRACK.view);
+  svg.innerHTML = TRACK.frame
+    + `<path id="rail" class="rail" d="${TRACK.d}"/><path class="rail-in" d="${TRACK.d}"/>`
+    + `<path id="rail-done" class="rail rail-done" d="${TRACK.d}" stroke-dasharray="0 99999"/>`;
+  const rail = $('#rail'), len = rail.getTotalLength();
+  A.len = len;
+  A.parts.forEach((p) => {
+    const pt = rail.getPointAtLength(p.at * len);
+    const pt2 = rail.getPointAtLength(Math.min(len, p.at * len + 3));
+    const ang = Math.atan2(pt2.y - pt.y, pt2.x - pt.x) * 180 / Math.PI;
+    const g = document.createElementNS(SVGNS, 'g');
+    g.setAttribute('class', 'ctrl part-broken');
+    g.setAttribute('transform', `translate(${pt.x},${pt.y}) rotate(${ang})`);
+    g.innerHTML = partShape(p) + `<text class="pmark" y="-24" text-anchor="middle" font-size="22" font-weight="bold" fill="#e0443a">!</text><circle class="hit" r="26" fill="transparent"/>`;
+    g.onclick = () => { if (A.tapOk && !A.busy && A.running) obeyPart(p); };
+    p.el = g; p.x = pt.x; p.y = pt.y;
+    svg.appendChild(g);
+  });
+  const ball = document.createElementNS(SVGNS, 'circle');
+  ball.setAttribute('id', 'ball'); ball.setAttribute('class', 'ball'); ball.setAttribute('r', TRACK.ballR);
+  ball.setAttribute('cx', TRACK.start.x); ball.setAttribute('cy', TRACK.start.y);
+  svg.appendChild(ball);
   const rb = document.createElementNS(SVGNS, 'g');
-  rb.setAttribute('class', 'robot');
-  rb.setAttribute('id', 'robot');
+  rb.setAttribute('class', 'robot'); rb.setAttribute('id', 'robot');
   rb.innerHTML = ROBOT.svg;
-  rb.style.transform = `translate(90px, ${MACHINE.floor}px)`;
+  rb.style.transform = `translate(80px, ${TRACK.floor}px)`;
   svg.appendChild(rb);
 }
 
-function say(text, ms = 1600) {
+// ---------- jízda kuličky ----------
+function firstBroken() { return A.parts.find((p) => !p.ok) || null; }
+function ballRun() {
+  return new Promise((done) => {
+    const rail = $('#rail'), ball = $('#ball');
+    if (!rail || !ball) { done(); return; }
+    const len = A.len;
+    const stop = firstBroken();
+    const end = stop ? stop.at * len : len;
+    ball.classList.remove('fall');
+    ball.style.transform = '';
+    const t0 = performance.now(), speed = 260;      // px za sekundu
+    sfx.roll();
+    const stepFn = (ts) => {
+      const l = Math.min(end, (ts - t0) / 1000 * speed);
+      const pt = rail.getPointAtLength(l);
+      ball.setAttribute('cx', pt.x); ball.setAttribute('cy', pt.y);
+      $('#rail-done').setAttribute('stroke-dasharray', `${l} 99999`);
+      A.reach = l / len;
+      updateBar();
+      if (l < end) { requestAnimationFrame(stepFn); return; }
+      if (stop) { ball.classList.add('fall'); sfx.drop(); setTimeout(done, 900); }
+      else { arrive().then(done); }
+    };
+    requestAnimationFrame(stepFn);
+  });
+}
+function arrive() {
+  return new Promise((done) => {
+    const bell = $('#bell');
+    if (bell) { bell.classList.remove('ring'); bell.getBoundingClientRect(); bell.classList.add('ring'); }
+    sfx.bell();
+    setTimeout(done, 700);
+  });
+}
+
+// ---------- co robůtek udělá ----------
+function say(text, ms = 1800) {
   const s = $('#say');
   s.hidden = false; s.textContent = text;
   clearTimeout(say._t);
   say._t = setTimeout(() => { s.hidden = true; }, ms);
 }
-
 function walkTo(x) {
   const rb = $('#robot');
   rb.classList.add('walk');
-  rb.style.transform = `translate(${x - 30}px, ${MACHINE.floor}px)`;
+  rb.style.transform = `translate(${clamp(x - 20, 40, 400)}px, ${TRACK.floor}px)`;
   return new Promise((res) => setTimeout(() => { rb.classList.remove('walk'); res(); }, 520));
 }
 function poke() {
   const rb = $('#robot');
-  rb.classList.remove('poke'); void rb.offsetWidth; rb.classList.add('poke');
+  rb.classList.remove('poke'); rb.getBoundingClientRect(); rb.classList.add('poke');
   return new Promise((res) => setTimeout(res, 380));
 }
 function shrug() {
   const rb = $('#robot');
-  rb.classList.remove('shrug'); void rb.offsetWidth; rb.classList.add('shrug');
+  rb.classList.remove('shrug'); rb.getBoundingClientRect(); rb.classList.add('shrug');
   sfx.shrug();
 }
-
-function steamAt(c) {
+function steamAt(p) {
   const svg = $('#svg');
   for (let i = 0; i < 3; i++) {
-    const p = document.createElementNS(SVGNS, 'circle');
-    p.setAttribute('cx', c.x + (i - 1) * 12); p.setAttribute('cy', c.y - 18);
-    p.setAttribute('r', 9 + i * 2); p.setAttribute('fill', '#ffffff'); p.setAttribute('opacity', '.8');
-    p.setAttribute('class', 'steam');
-    p.style.animationDelay = i * 0.12 + 's';
-    svg.appendChild(p);
-    setTimeout(() => p.remove(), 1200);
+    const c = document.createElementNS(SVGNS, 'circle');
+    c.setAttribute('cx', p.x + (i - 1) * 10); c.setAttribute('cy', p.y - 16);
+    c.setAttribute('r', 8 + i * 2); c.setAttribute('fill', '#fff'); c.setAttribute('opacity', '.85');
+    c.setAttribute('class', 'spark');
+    c.style.animationDelay = i * 0.1 + 's';
+    svg.appendChild(c);
+    setTimeout(() => c.remove(), 1000);
   }
   sfx.steam();
 }
-function dropScrew(c) {
-  const svg = $('#svg');
-  const s = document.createElementNS(SVGNS, 'g');
-  s.setAttribute('class', 'screwfall');
-  s.innerHTML = `<circle cx="${c.x + 18}" cy="${c.y + 14}" r="7" fill="#b9a06a" stroke="#8a7440" stroke-width="2"/>
-                 <path d="M${c.x + 14},${c.y + 14} h8" stroke="#8a7440" stroke-width="2"/>`;
-  svg.appendChild(s);
-  setTimeout(() => s.remove(), 1100);
-}
 
-// ---------- co robůtek udělá ----------
 async function obey(cmds) {
   if (A.busy || !A.running) return;
-  const t = A.queue[0];
   A.busy = true;
   try {
+    const t = A.queue[0];
     for (const cmd of cmds) {
-      const r = resolve(cmd, A.controls);
+      const r = resolve(cmd, A.parts);
       if (r.screw) {
         if (t.kind === 'screw') { await fixScrew(); return; }
         say('Šroubek? Žádný tu neleží.'); shrug(); return;
@@ -480,117 +479,105 @@ async function obey(cmds) {
       if (t.kind === 'screw') { say('Napřed ten šroubek.'); shrug(); return; }
       if (r.kind === 'what') { say('A co? Řekni to celé.'); shrug(); return; }
       if (r.kind === 'none') { say('To tu nemám.'); shrug(); return; }
-      if (r.kind === 'many') { say('Kterou? Je jich víc.'); shrug(); return; }
-      const okNow = await act(r.control);
-      if (!okNow) return;                     // špatný ovladač – zbytek povelu se neprovádí
+      if (r.kind === 'many') { say('Který? Je jich víc.'); shrug(); return; }
+      const ok = await act(r.part);
+      if (!ok) return;
       if (A.step >= t.descs.length) { await finishTicket(); return; }
     }
   } finally { A.busy = false; }
 }
-function obeyControl(c) {                      // ťuknutí místo hlasu (bez mikrofonu)
+function obeyPart(p) {                           // ťuknutí místo hlasu (bez mikrofonu)
   if (A.busy || !A.running) return;
   const t = A.queue[0];
   if (t.kind === 'screw') { fixScrew(); return; }
   A.busy = true;
-  act(c).then((ok) => { if (ok && A.step >= t.descs.length) finishTicket(); }).finally(() => { A.busy = false; });
+  act(p).then((ok) => { if (ok && A.step >= t.descs.length) return finishTicket(); }).finally(() => { A.busy = false; });
 }
 
-async function act(c) {
-  await walkTo(c.x);
+async function act(p) {
+  await walkTo(p.x);
   await poke();
   const t = A.queue[0];
   const want = t.descs[A.step];
-  const right = want && matches(c, want);
-  c.el.classList.remove('acted', 'wrongact'); void c.el.offsetWidth;
-  if (right) {
-    c.el.classList.add('acted');
-    if (c.noun === 'lamp') c.el.classList.add('lit');
-    sfx.click(); sfx.good();
+  if (want && matches(p, want) && !p.ok) {
+    p.ok = true;
+    p.el.classList.remove('part-broken');
+    p.el.classList.add('part-ok');
+    sfx.fix();
     A.step++;
     return true;
   }
-  c.el.classList.add('wrongact');
-  steamAt(c); dropScrew(c);
-  A.pressure = clamp(A.pressure + 25, 0, 100);
-  updatePressure();
-  say('Jejda!');
-  A.queue.unshift({ kind: 'screw' });          // šroubek se musí vrátit
+  steamAt(p);
+  A.queue.unshift({ kind: 'screw' });            // šroubek se musí vrátit
   A.step = 0;
-  setTimeout(showTicket, 700);
+  say('Jejda!');
+  setTimeout(showTicket, 600);
   return false;
 }
 async function fixScrew() {
   A.busy = true;
-  await walkTo(160);
+  await walkTo(200);
   await poke();
-  sfx.click();
+  sfx.fix();
   A.queue.shift();
-  A.pressure = clamp(A.pressure - 15, 0, 100);
-  updatePressure();
   A.step = 0;
   A.busy = false;
   showTicket();
 }
 async function finishTicket() {
-  sfx.good();
-  A.done++;
-  updateBar();
   A.queue.shift();
   A.step = 0;
-  if (A.done >= S.settings.goal) { win(); return; }
-  setTimeout(newTicket, 600);
+  $('#ticket').classList.add('gone');
+  await ballRun();
+  if (!A.queue.length) { win(); return; }
+  showTicket();
 }
 
 // ---------- kolo ----------
 function updateBar() {
-  const goal = S.settings.goal;
-  $('#bar').style.width = (100 * A.done / goal) + '%';
-  $('#bar-text').textContent = `🎫 ${A.done} / ${goal}`;
+  $('#bar').style.width = (100 * A.reach) + '%';
+  const left = A.parts.filter((p) => !p.ok).length;
+  $('#bar-text').textContent = left ? `zbývá dílů: ${left}` : 'projela!';
 }
-function updatePressure() { $('#pressure').style.height = A.pressure + '%'; }
-
 function showTicket() {
   const t = A.queue[0];
   if (!t) return;
   const el = $('#ticket');
   el.className = 'ticket ' + WORLDS[G.world].cls;
   $('#ticket-text').innerHTML = ticketHtml(t, G.world);
-  el.classList.remove('out'); void el.offsetWidth; el.classList.add('out');
+  void el.offsetWidth; el.classList.add('out');
   sfx.print();
 }
-function newTicket() {
-  const T = TIERS[G.tier];
-  const round = buildControls(T);
-  if (!round) return;
-  buildMachine(round);
-  const descs = [round.desc];
-  if (T.cmds > 1) {
-    const other = A.controls.filter((c) => !matches(c, round.desc));
-    // druhý povel musí být taky jednoznačný
-    for (const c of shuffle(other)) {
-      const d = descOf(c, T);
-      if (A.controls.filter((x) => matches(x, d)).length === 1) { descs.push(d); break; }
-    }
+function makeQueue(T) {
+  const broken = A.parts.filter((p) => !p.ok);
+  const q = [];
+  for (let i = 0; i < broken.length; i += T.cmds) {
+    const descs = broken.slice(i, i + T.cmds).map((p) => descOf(p, T));
+    q.push({ kind: 'cmd', descs });
   }
-  A.queue = [{ kind: 'cmd', descs }];
-  A.step = 0;
-  showTicket();
+  return q;
 }
-
 function startLevel(w, t) {
   G.world = w; G.tier = t;
-  A.done = 0; A.pressure = 0; A.step = 0; A.busy = false; A.tapOk = !micUsable();
-  A.seed = rnd(1e9);
-  updateBar(); updatePressure();
+  const T = TIERS[t];
+  A.seed = rnd(1e9); A.step = 0; A.busy = false; A.reach = 0; A.tapOk = !micUsable();
+  const K = clamp(+S.settings.goal || 6, 3, 8);
+  const combos = buildParts(T, K);
+  const slots = TRACK.slots.slice(0, combos.length);
+  A.parts = combos.slice(0, slots.length).map((c, i) => Object.assign({}, c, { at: slots[i], ok: false }));
+  // cedulky chodí v pořadí dráhy, takže každá oprava kuličku posune dál
+  A.parts.sort((a, b) => a.at - b.at);
+  A.queue = makeQueue(T);
+  show('game');
+  buildScene();
+  updateBar();
   showHeard('', false);
   $('#say').hidden = true;
-  show('game');
   $('#micbar').hidden = false;
   A.running = true;
-  newTicket();
+  showTicket();
   if (micUsable()) startMic();
 }
-
 function win() {
   A.running = false; stopMic(); sfx.fanfare();
   const k = levelKey(G.world, G.tier);
@@ -598,18 +585,18 @@ function win() {
   S.progress[k] = { wins: prev + 1 }; save();
   const i = levelOrder.indexOf(k);
   const unlockedNext = !S.settings.unlock && prev === 0 && i + 1 < levelOrder.length;
-  $('#done-icon').textContent = '🎉';
-  $('#done-title').textContent = 'Stroj zase jede!';
-  $('#done-text').textContent = (unlockedNext ? '🔓 Odemkl se další level! ' : '') + `Robůtek splnil ${A.done} povelů a vyrobil tohle:`;
+  $('#done-icon').textContent = '🔔';
+  $('#done-title').textContent = 'Kulička projela!';
+  $('#done-text').textContent = (unlockedNext ? '🔓 Odemkl se další level! ' : '') + `Robůtek spravil ${A.parts.length} dílů a z koše vylezla tahle:`;
   $('#done-made').innerHTML = monsterSVG(A.seed);
-  setTimeout(() => $('#modal-done').classList.add('open'), 400);
+  setTimeout(() => $('#modal-done').classList.add('open'), 500);
 }
 
 // ---------- obrazovky ----------
 function show(id) { document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('active', s.id === id)); }
 function renderHome() {
   const warn = $('#mic-warn');
-  if (!SR) { warn.hidden = false; warn.textContent = '🎤 Tenhle prohlížeč neumí rozpoznávat řeč, takže robůtek neuslyší. Ovladače půjde ťuknout. Nejlíp funguje Chrome.'; }
+  if (!SR) { warn.hidden = false; warn.textContent = '🎤 Tenhle prohlížeč neumí rozpoznávat řeč, takže robůtek neuslyší. Díly půjde ťuknout. Nejlíp funguje Chrome.'; }
   else if (!window.isSecureContext) { warn.hidden = false; warn.textContent = '🎤 Mikrofon funguje jen na zabezpečené stránce (https) nebo na localhost. Tady se ťuká.'; }
   else warn.hidden = true;
 
@@ -632,7 +619,7 @@ function renderHome() {
 
 // ---------- ovládání ----------
 $('#btn-mic').onclick = () => {
-  if (MIC.dead) { A.tapOk = true; say('Ťukni na ovladač sám.'); return; }
+  if (MIC.dead) { A.tapOk = true; say('Ťukni na díl sám.'); return; }
   if (MIC.want) stopMic(); else startMic();
 };
 $('#btn-next').onclick = () => { $('#modal-done').classList.remove('open'); startLevel(G.world, G.tier); };
@@ -675,7 +662,7 @@ function openParent() {
 $('#parent-close').onclick = () => {
   S.settings = {
     mic: $('#opt-mic').checked, strict: clamp(+$('#opt-strict').value || 0, 0, 2),
-    goal: clamp(+$('#opt-goal').value || 8, 3, 20),
+    goal: clamp(+$('#opt-goal').value || 6, 3, 8),
     syll: $('#opt-syll').checked, tts: $('#opt-tts').checked, sound: $('#opt-sound').checked, unlock: $('#opt-unlock').checked,
   };
   save();

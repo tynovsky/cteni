@@ -2,79 +2,105 @@
 
 **Hraj online:** https://tynovsky.github.io/cteni/robutek/ (rozcestník: https://tynovsky.github.io/cteni/)
 
-Šestá hra ze série pro začínající čtenáře (5–8 let). Stroj se zasekne, vyjede z něj
-cedulka s povelem — a **robůtek, který neumí číst, čeká, až mu ho dítě přečte nahlas.**
+Hra pro začínající čtenáře (5–8 let). Kuličková dráha je rozbitá. Robůtek ji umí spravit,
+ale **neumí číst** — a tak mu dítě musí povel z cedulky přečíst nahlas. Po každé opravě
+se kulička pustí znovu a dojede o kus dál.
 
 ## Proč zrovna takhle
 
-Předchozí hry měly skrytou vadu: slovo bylo jméno něčeho, co bylo vidět. V Barabizně
-tvar díry po komíně prozradí „komín" dřív, než dítě přečte první písmeno. Čtení šlo
-obejít.
+Starší hry v sérii měly skrytou vadu: slovo bylo jméno něčeho, co bylo vidět. V Barabizně
+tvar díry po komíně prozradí „komín" dřív, než dítě přečte první písmeno. Čtení šlo obejít.
 
-Tady ne. Na stroji je devět ovladačů a **nic než text neřekne, který z nich**.
-Robůtek je hluchý k obrázku a slepý k písmu: jediná cesta, jak se informace z cedulky
-dostane do stroje, vede přes dětský hlas. Čtení není kontrola, ale mechanismus.
+Tady ne. Na dráze je až osm dílů a **nic než text neřekne, který z nich**. Robůtek je
+k písmu slepý: jediná cesta, jak se informace z cedulky dostane do dráhy, vede přes dětský
+hlas. Čtení není kontrola, ale mechanismus.
 
 Vzor je *Keep Talking and Nobody Explodes*, obrácený: dítě drží manuál, robot má ruce.
 
 ## Pravidla
 
-- 🎫 Ze stroje vyjede cedulka: `ZMÁČKNI ČERVENÉ TLAČÍTKO`.
-- 🤖 Dítě přečte **celý povel nahlas**. Robůtek dojde k ovladači a provede to.
-- 🤷 **Nedořečený povel = pokrčení rameny.** Když dítě řekne jen „červené" a červená
-  jsou na stroji dvě, robůtek rozhodí rukama: *„kterou?"* Nic se nestane, nic se
-  nepokazí — ale dítě musí dočíst do konce. Tohle je celý zámek hry.
-- 💨 **Robůtek udělá, co slyšel, ne co je správně.** Když dítě řekne „modré" místo
-  „červené", zmáčkne modré, sykne pára a odpadne šroubek. Ten se pak musí vrátit
-  (`VRAŤ ŠROUBEK`) — hádání tedy stojí práci, ale kolo nikdy neskončí špatně.
-- 🏆 Když stroj zase jede, vyrobí příšerku.
+- ⚪ Kulička se pustí shora a dojede **k prvnímu rozbitému dílu**. Tam spadne z dráhy.
+- 🎫 Vyjede cedulka s povelem: `PŘEHOĎ ČERVENOU VÝHYBKU`.
+- 🤖 Dítě přečte **celý povel nahlas**. Robůtek dojde k dílu a spraví ho.
+- 🔁 Kulička se hned pustí znovu a dostane se dál než minule. **Postup je vzdálenost,
+  ne číslo na liště** — proto chodí cedulky v pořadí dráhy, aby každá oprava byla vidět.
+- 🤷 **Nedořečený povel = pokrčení rameny.** Když dítě řekne jen „červenou" a červené
+  díly jsou dva, robůtek rozhodí rukama: *„Který? Je jich víc."* Nic se nepokazí, ale
+  dítě musí dočíst do konce. Tohle je celý zámek hry.
+- 💨 **Robůtek udělá, co slyšel, ne co je správně.** Sykne pára, odpadne šroubek a ten
+  se musí vrátit (`VRAŤ ŠROUBEK`). Hádání stojí práci, kolo ale nikdy neskončí špatně.
+- 🔔 Když kulička projede až dolů, zazvoní na zvonek a z koše vyleze příšerka.
 
 Vedlejší efekt téhle fikce: **přeslechnutí mikrofonu je součástí příběhu.** Robot slyší
 špatně, tak udělá hloupost — dítě se směje místo toho, aby se vztekalo na aplikaci.
+
+## Díly dráhy
+
+Každý díl je brána: dokud je rozbitý, kulička se přes něj nedostane.
+
+| díl | co je špatně | povel |
+|---|---|---|
+| výhybka | ukazuje do slepé větve | `PŘEHOĎ ČERVENOU VÝHYBKU` |
+| klapka | zavřená | `OTEVŘI MODROU KLAPKU` |
+| most | zvednutý, díra v trase | `SKLOP ZELENÝ MOST` |
+| žlab | pootočený, kulička padá vedle | `SROVNEJ ŽLUTÝ ŽLAB` |
+| kolečko | stojí, nevynese kuličku dál | `ROZTOČ MALÉ ČERVENÉ KOLEČKO` |
 
 ## Levely
 
 Level neurčuje délku slov, ale **kolik informace musí dítě z cedulky vytáhnout**:
 
-| level | cedulka | co je na stroji |
+| level | cedulka | na dráze |
 |---|---|---|
-| Jedno slovo | `ZMÁČKNI ČERVENÉ TLAČÍTKO` | samá tlačítka, liší se jen barvou |
-| Dvě slova | `ZMÁČKNI MALÉ ČERVENÉ TLAČÍTKO` | červená jsou dvě, velké a malé |
-| Víc věcí | `ROZTOČ VELKÉ MODRÉ KOLEČKO` | tlačítka, kolečka, táhla, světla, víčka |
-| Dva povely | `ZMÁČKNI ŽLUTÉ TLAČÍTKO A ROZSVIŤ MALÉ ZELENÉ SVĚTLO` | dvě věci za sebou, ve správném pořadí |
-
-Ke každému světu (VELKÁ PÍSMENA, malá písmena, psací písmo) patří všechny čtyři.
+| Barva | `PŘEHOĎ ČERVENOU VÝHYBKU` | samé výhybky, liší se jen barvou |
+| Barva a velikost | `PŘEHOĎ MALOU ČERVENOU VÝHYBKU` | červené jsou dvě, velká a malá |
+| Víc dílů | `SKLOP MALÝ ZELENÝ MOST` | dva druhy dílů, takže rozhoduje i jméno |
+| Dva povely | `SROVNEJ ŽLUTÝ ŽLAB A OTEVŘI MODROU KLAPKU` | dvě opravy za sebou |
 
 ## Jak se hlídá, že se nedá hádat
 
-Devět ovladačů a náhodná cedulka by nestačily — dítě by tipovalo. Generátor kola proto
-u každé cedulky ověří dvě věci:
+Díly na dráze netvoří náhodnou sbírku, ale **mřížku** (druhy × velikosti × barvy).
+Ke každému dílu tak existuje jiný, který se od něj liší právě jedním slovem — a z toho
+plynou dvě vlastnosti, které testy ověřují pro všechny levely a 3–8 dílů:
 
-1. **Jednoznačnost** — celému popisu vyhovuje právě jeden ovladač.
-2. **Každé slovo je nosné** — když se z popisu kterékoli slovo vyškrtne, vyhovují
-   aspoň dva. Tedy: k `MALÉ ČERVENÉ TLAČÍTKO` je na stroji vždy i velké červené
-   tlačítko a malé modré tlačítko.
+1. **Jednoznačnost** — celému popisu vyhovuje právě jeden díl.
+2. **Každé slovo je nosné** — po vyškrtnutí kteréhokoli slova vyhovují aspoň dva.
+   K `MALÉMU ZELENÉMU MOSTU` je na dráze vždy i velký zelený most a malý jiný barevný.
 
-Bez druhé podmínky by šlo přečíst první slovo a zbytek uhodnout — přesně to, čemu se
-tahle hra vyhýbá.
+Kdyby se díly losovaly nezávisle, druhá vlastnost by padla a dalo by se přečíst první
+slovo a zbytek uhodnout.
 
-## Pádové vazby řešené návrhem dat
+Sloveso se do hledání dílu záměrně **nepromítá**. „Přehoď" sice patří jen k výhybce, ale
+kdyby z něj šel typ odvodit, dítě by mohlo poslední slovo na cedulce vynechat.
 
-Rozkaz vyžaduje 4. pád a ten by u každého rodu vypadal jinak: *zmáčkni červen**é**
-tlačítko*, *zatáhni za červen**ou** páku*, *otoč červen**ým** kolečkem*. Skloňovat v kódu
-by byl nesmysl, a tak jsou **všechna jména ovladačů středního rodu** (tlačítko, kolečko,
-táhlo, světlo, víčko) a **všechna slovesa berou 4. pád** (zmáčkni, roztoč, vytáhni,
-rozsviť, otevři). Ve středním rodě je 4. pád stejný jako 1., takže `červené` je jediný
-tvar, který kdy bude potřeba.
+## Shoda rodu
 
-Kdo by chtěl přidat „páku" nebo „ventil", musí nejdřív přidat tvary přídavných jmen.
+Rozkaz je 4. pád a rody se na dráze míchají, takže přídavné jméno má tři tvary:
+
+| rod | díl | povel |
+|---|---|---|
+| ženský | výhybka, klapka | přehoď červen**ou** výhybk**u** |
+| mužský neživotný | most, žlab | sklop červen**ý** most |
+| střední | kolečko | roztoč červen**é** kolečko |
+
+Tvary jsou v `track.js` jako tabulka (`ADJ`), ne v kódu. Pro dítě je to čtení navíc:
+koncovka přídavného jména musí sedět ke jménu dílu.
+
+Rozpoznávač všechny tři tvary mapuje na stejný klíč, takže „červenou" i „červené"
+znamenají červenou — ale tvary téhož slova si jsou blízko, a proto se shoda mezi nimi
+nepočítá jako nejednoznačnost. (Nejbližší dvě *různá* slova ve slovníku jsou
+`červený`/`zelený`, vzdálená tři úpravy.)
 
 ## Struktura
 
 - `index.html` – obrazovky a modály
-- `style.css` – vzhled, stroj, robůtek, cedulka, pára
-- `game.js` – generátor cedulek, rozbor povelu z řeči, robůtek, postup
-- `machine.js` – slovník (slovesa, barvy, velikosti, tvary, jména) a stroj (tělo, devět míst)
+- `style.css` – vzhled, dráha, kulička, robůtek, cedulka
+- `game.js` – generátor dráhy, rozbor povelu z řeči, jízda kuličky, robůtek
+- `track.js` – slovník se třemi tvary, díly dráhy a trasa
+
+Trasa je **jedna SVG křivka** a díly sedí na zlomku její délky — místo i natočení se
+dopočítá z `getPointAtLength()`. Díl proto nemůže skončit vedle dráhy a kulička po ní
+jede přesně. Další dráha je tedy jen jiné `d` a jiný seznam zlomků.
 
 ## Požadavky na mikrofon
 
@@ -86,8 +112,8 @@ Kdo by chtěl přidat „páku" nebo „ventil", musí nejdřív přidat tvary p
 | https nebo localhost | **nutné** |
 | internet | **nutný** |
 
-Bez mikrofonu se ovladače dají ťuknout přímo — dítě si povel přečte samo pro sebe.
-Hra to pozná a napíše to na úvodní obrazovce.
+Bez mikrofonu se díly dají ťuknout přímo — dítě si povel přečte samo pro sebe. Hra to
+pozná a napíše to na úvodní obrazovce.
 
 ## Spuštění
 

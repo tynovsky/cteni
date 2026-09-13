@@ -11,7 +11,7 @@ Hry na procvičování čtení pro začínající čtenáře (5–8 let). Static
 | 🪄 [Kouzelná slova](kouzelna-slova/) | `kouzelna-slova/` | hlasová – slovo se čte nahlas do mikrofonu |
 | 🔧 [Porucha](porucha/) | `porucha/` | opravárenská – hra se rozpadá a čtení ji spravuje |
 | 🏠 [Barabizna](barabizna/) | `barabizna/` | stavitelská – dům se rozpadá, čtení vrací díly na místo |
-| 🤖 [Robůtek](robutek/) | `robutek/` | povelová – robot neumí číst, dítě mu diktuje povel ze stroje |
+| 🤖 [Robůtek](robutek/) | `robutek/` | povelová – kuličková dráha, robot neumí číst a dítě mu diktuje opravy |
 
 První tři hry stojí na stejné bázi: příšerka chce slovo z bubliny. V prvních dvou ho dítě
 přečte a vybere správný obrázek, ve třetí ho přečte nahlas. Čtvrtá obrací zadání — slovo

@@ -114,6 +114,23 @@ body {
 .say[hidden] { display: none; }
 @keyframes pop { 0% { transform: translateX(-50%) scale(.6); opacity: 0; } 100% { transform: translateX(-50%) scale(1); opacity: 1; } }
 
+/* ---- dráha ---- */
+.rail { fill: none; stroke: #b08a5a; stroke-width: 9; stroke-linecap: round; }
+.rail-in { fill: none; stroke: #d9b483; stroke-width: 5; stroke-linecap: round; }
+.rail-done { stroke: #7fc48a; }
+.ball { fill: #e8eef6; stroke: #9fb0c4; stroke-width: 2.5; filter: drop-shadow(0 2px 2px rgba(0,0,0,.25)); }
+.ball.fall { animation: ballfall .9s cubic-bezier(.4,0,.9,.6) forwards; }
+@keyframes ballfall { to { transform: translateY(120px) scale(.85); opacity: 0; } }
+.part-broken .pbody { opacity: .55; }
+.part-broken .pmark { display: inline; }
+.pmark { display: none; }
+.part-ok .pglow { animation: pglow .6s; }
+@keyframes pglow { 0% { transform: scale(1); } 45% { transform: scale(1.25); } 100% { transform: scale(1); } }
+#bell.ring { animation: bellring .6s; transform-origin: 406px 60px; }
+@keyframes bellring { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-16deg); } 75% { transform: rotate(16deg); } }
+.spark { animation: spark .7s ease-out forwards; }
+@keyframes spark { 0% { opacity: 1; transform: scale(.4); } 100% { opacity: 0; transform: scale(1.8) translateY(-20px); } }
+
 /* ---- mikrofon ---- */
 .micbar { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 4px 0 12px; flex: 0 0 auto; }
 .micbar[hidden] { display: none; }

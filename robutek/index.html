@@ -15,7 +15,8 @@
 <section id="home" class="screen active">
   <header class="title">
     <h1>Ro<span>bůtek</span></h1>
-    <p>Robůtek neumí číst. Ty ano. Přečti mu nahlas, co je na cedulce, a on to udělá.</p>
+    <p>Kuličková dráha je rozbitá. Robůtek ji spraví — ale neumí číst.
+      Přečti mu nahlas, co je na cedulce, a kulička dojede pokaždé o kus dál.</p>
   </header>
   <div class="warn" id="mic-warn" hidden></div>
   <div class="worlds" id="worlds"></div>
@@ -74,13 +75,15 @@
   <div class="card help">
     <h2>Jak se hraje</h2>
     <ul>
-      <li>🎫 Ze stroje vyjede cedulka s povelem, třeba <b>ZMÁČKNI ČERVENÉ TLAČÍTKO</b>.</li>
+      <li>⚪ Kulička se pustí shora a dojede k prvnímu rozbitému dílu. Tam spadne.</li>
+      <li>🎫 Vyjede cedulka s povelem, třeba <b>PŘEHOĎ ČERVENOU VÝHYBKU</b>.</li>
       <li>🤖 Robůtek neumí číst. Přečti mu povel <b>nahlas celý</b> a on ho provede.</li>
-      <li>🤷 Když mu neřekneš dost, rozhodí rukama — na stroji jsou červená dvě,
-        tak neví která. Dočti cedulku do konce.</li>
+      <li>🤷 Když mu neřekneš dost, rozhodí rukama — červené díly jsou dva,
+        tak neví který. Dočti cedulku do konce.</li>
       <li>💨 Když mu řekneš něco jiného, udělá to. Sykne pára a odpadne šroubek,
         který se pak musí vrátit.</li>
-      <li>🏆 Když stroj zase jede, vyrobí příšerku. Prohrát se nedá.</li>
+      <li>🔔 Po každé opravě kulička jede znovu a dostane se dál. Když projede až
+        dolů, zazvoní na zvonek a z koše vyleze příšerka. Prohrát se nedá.</li>
     </ul>
     <div class="modal-buttons"><button class="btn big" id="help-close">Jasně</button></div>
   </div>
@@ -105,7 +108,7 @@
           <option value="2">přísná – jen přesně</option>
         </select>
       </label>
-      <label>Povelů na kolo: <input type="number" id="opt-goal" min="3" max="20"></label>
+      <label>Dílů na dráze: <input type="number" id="opt-goal" min="3" max="8"></label>
       <label><input type="checkbox" id="opt-syll"> Ukazovat slabiky (ČER·VE·NÉ)</label>
       <label><input type="checkbox" id="opt-tts"> Předčítat nahlas (🔊)</label>
       <label><input type="checkbox" id="opt-sound"> Zvuky</label>
@@ -118,7 +121,7 @@
   </div>
 </div>
 
-<script src="machine.js"></script>
+<script src="track.js"></script>
 <script src="game.js"></script>
 </body>
 </html>
