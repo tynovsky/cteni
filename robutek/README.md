@@ -24,9 +24,16 @@ Vzor je *Keep Talking and Nobody Explodes*, obrácený: dítě drží manuál, r
 - 🤖 Dítě přečte **celý povel nahlas**. Robůtek dojde k dílu a spraví ho.
 - 🔁 Kulička se hned pustí znovu a dostane se dál než minule. **Postup je vzdálenost,
   ne číslo na liště** — proto chodí cedulky v pořadí dráhy, aby každá oprava byla vidět.
+- ✏️ **Přečtená slova se podtrhávají.** Jak dítě mluví, každé slovo, které robůtek
+  zachytil, dostane zelenou linku. Je tak vidět, co už zaznělo — a hlavně co ne.
 - 🤷 **Nedořečený povel = pokrčení rameny.** Když dítě řekne jen „červenou" a červené
   díly jsou dva, robůtek rozhodí rukama: *„Který? Je jich víc."* Nic se nepokazí, ale
-  dítě musí dočíst do konce. Tohle je celý zámek hry.
+  dítě musí dočíst do konce. Spolu s podtrháváním je hned vidět, které slovo chybí.
+  Tohle je celý zámek hry.
+
+**Co tu schválně není:** tlačítko s reproduktorem a dělení slov na slabiky.
+Předčítání by cedulku přečetlo za dítě a to by ji jen zopakovalo — čtení by šlo
+obejít, a přitom na něm celá hra stojí. Slabiky s tečkami zase brání vidět slovo vcelku.
 - 💨 **Robůtek udělá, co slyšel, ne co je správně.** Sykne pára, odpadne šroubek a ten
   se musí vrátit (`VRAŤ ŠROUBEK`). Hádání stojí práci, kolo ale nikdy neskončí špatně.
 - 🔔 Když kulička projede až dolů, zazvoní na zvonek a z koše vyleze příšerka.

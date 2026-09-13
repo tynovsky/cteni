@@ -15,7 +15,7 @@ const letters = (w) => w.replace(/-/g, '');
 // ---------- perzistence ----------
 const KEY = 'robutek-v1';
 const DEFAULTS = {
-  settings: { syll: true, tts: true, sound: true, unlock: false, goal: 6, mic: true, strict: 1 },
+  settings: { sound: true, unlock: false, goal: 6, mic: true, strict: 1 },
   progress: {},      // levelKey -> { wins: n }
 };
 let S = load();
@@ -59,19 +59,42 @@ function partWords(d) {
   out.push(P.acc);
   return out;
 }
-function wordHtml(w, world) {
-  const W = WORLDS[world];
-  const syl = S.settings.syll && world !== 2;   // u psacího nedělit, kazí to spojení písmen
-  const parts = w.split('-').map((p) => W.fmt(p));
-  return syl ? parts.join('<span class="syl">·</span>') : parts.join('');
+// Slovo se ukazuje vcelku. Dělení na slabiky zmizelo: dítě má číst slovo, ne kousky.
+function wordHtml(w, world) { return WORLDS[world].fmt(letters(w)); }
+
+// Cedulka po slovech i s významem – podle něj se pozná, které slovo dítě už přečetlo.
+function ticketWords(t) {
+  if (t.kind === 'screw') return [{ w: SCREW.verb, cat: 'screwverb', key: 'vrat' }, { w: SCREW.w, cat: 'screw', key: 'screw' }];
+  const out = [];
+  t.descs.forEach((d, i) => {
+    if (i) out.push({ w: 'a', cat: null, key: null });
+    const P = PARTS[d.type], g = P.g;
+    out.push({ w: P.verb, cat: 'verb', key: d.type });
+    if (d.size) out.push({ w: ADJ.sizes[d.size][g], cat: 'size', key: d.size });
+    out.push({ w: ADJ.colors[d.color][g], cat: 'color', key: d.color });
+    out.push({ w: P.acc, cat: 'type', key: d.type });
+  });
+  return out;
 }
 function ticketHtml(t, world) {
-  if (t.kind === 'screw') return `<span class="screw">${wordHtml(SCREW.verb, world)} ${wordHtml(SCREW.w, world)}</span>`;
-  return t.descs.map((d) => partWords(d).map((w) => wordHtml(w, world)).join(' ')).join(' <b>a</b> ');
+  return ticketWords(t).map((x, i) => `<span class="tw" data-i="${i}">${wordHtml(x.w, world)}</span>`).join(' ');
 }
-function ticketPlain(t) {
-  if (t.kind === 'screw') return `${SCREW.verb} ${letters(SCREW.w)}`;
-  return t.descs.map((d) => partWords(d).map(letters).join(' ')).join(' a ');
+function ticketPlain(t) { return ticketWords(t).map((x) => letters(x.w)).join(' '); }
+
+// Podtrhne slova, která rozpoznávač zachytil. Značky se jen přidávají, takže
+// průběžné výsledky podtržení neblikají. Dítě tím vidí, co ještě neřeklo.
+function markSpan(i) {
+  const el = $(`#ticket-text .tw[data-i="${i}"]`);
+  if (el) el.classList.add('read');
+}
+function markHeard(text) {
+  if (!A.words || !A.words.length) return;
+  for (const tok of String(text || '').split(/\s+/)) {
+    const m = matchToken(tok);
+    if (!m) continue;
+    const i = A.words.findIndex((w, idx) => !A.marked.has(idx) && w.cat === m.cat && w.key === m.key);
+    if (i >= 0) { A.marked.add(i); markSpan(i); }
+  }
 }
 
 // ---------- rozbor povelu z řeči ----------
@@ -229,20 +252,8 @@ const sfx = {
   fanfare: () => [523, 659, 784, 1047].forEach((f, i) => beep(f, .25, 'sine', .2, i * .12)),
 };
 
-// ---------- předčítání ----------
-let czVoice = null;
-function loadVoices() { const v = speechSynthesis.getVoices(); czVoice = v.find((x) => /^cs/i.test(x.lang)) || null; }
-if ('speechSynthesis' in window) { loadVoices(); speechSynthesis.onvoiceschanged = loadVoices; }
-function speak(text) {
-  if (!('speechSynthesis' in window)) return;
-  const wasOn = MIC.want;
-  stopMic();                                   // ať rozpoznávač neslyší sám sebe
-  speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'cs-CZ'; u.rate = 0.85; if (czVoice) u.voice = czVoice;
-  u.onend = u.onerror = () => { if (wasOn && A.running) setTimeout(startMic, 250); };
-  speechSynthesis.speak(u);
-}
+// Předčítání tu schválně NENÍ. Tlačítko s reproduktorem by cedulku přečetlo za dítě
+// a to by ji jen zopakovalo – čtení by šlo obejít, a na tom celá hra stojí.
 
 // ---------- mikrofon ----------
 // Mikrofon si NEOTVÍRÁME sami (getUserMedia) – vlastní stream by rozpoznávači v Chrome
@@ -327,6 +338,7 @@ function onMicResult(e) {
   const texts = [];
   for (let i = 0; i < res.length; i++) texts.push(res[i].transcript);
   if (!texts.length || !A.running || A.busy) return;
+  markHeard(texts[0]);                         // podtrhávat už z průběžných výsledků
   if (!res.isFinal) { showHeard(texts[0].trim(), true); return; }
   showHeard(texts[0].trim(), false);
   for (const t of texts) {
@@ -582,6 +594,7 @@ function showTicket() {
   if (!t) return;
   const el = $('#ticket');
   el.className = 'ticket ' + WORLDS[G.world].cls;
+  A.words = ticketWords(t); A.marked = new Set();     // nová cedulka = nová podtržení
   $('#ticket-text').innerHTML = ticketHtml(t, G.world);
   void el.offsetWidth; el.classList.add('out');
   sfx.print();
@@ -663,11 +676,8 @@ $('#btn-mic').onclick = () => {
 $('#btn-next').onclick = () => { $('#modal-done').classList.remove('open'); startLevel(G.world, G.tier); };
 $('#btn-home').onclick = () => { $('#modal-done').classList.remove('open'); leaveGame(); };
 $('#btn-back').onclick = () => leaveGame();
-$('#btn-speak').onclick = () => { const t = A.queue[0]; if (t) speak(ticketPlain(t)); };
-$('#ticket').onclick = () => { const t = A.queue[0]; if (t && S.settings.tts) speak(ticketPlain(t)); };
 function leaveGame() {
   A.running = false; stopMic();
-  try { speechSynthesis.cancel(); } catch { /* nic */ }
   renderHome(); show('home');
 }
 document.addEventListener('visibilitychange', () => {
@@ -694,14 +704,13 @@ function openParent() {
   $('#parent-gate').hidden = true; $('#parent-panel').hidden = false;
   $('#opt-mic').checked = S.settings.mic; $('#opt-strict').value = String(S.settings.strict);
   $('#opt-goal').value = S.settings.goal;
-  $('#opt-syll').checked = S.settings.syll; $('#opt-tts').checked = S.settings.tts;
   $('#opt-sound').checked = S.settings.sound; $('#opt-unlock').checked = S.settings.unlock;
 }
 $('#parent-close').onclick = () => {
   S.settings = {
     mic: $('#opt-mic').checked, strict: clamp(+$('#opt-strict').value || 0, 0, 2),
     goal: clamp(+$('#opt-goal').value || 6, 3, 8),
-    syll: $('#opt-syll').checked, tts: $('#opt-tts').checked, sound: $('#opt-sound').checked, unlock: $('#opt-unlock').checked,
+    sound: $('#opt-sound').checked, unlock: $('#opt-unlock').checked,
   };
   save();
   $('#modal-parent').classList.remove('open');

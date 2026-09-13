@@ -72,7 +72,13 @@ body {
 @keyframes printout { 0% { transform: translateY(-28px) scaleY(.4); opacity: 0; } 100% { transform: none; opacity: 1; } }
 .ticket.gone { animation: ticketgone .4s forwards; }
 @keyframes ticketgone { to { transform: translateY(14px) scale(.8); opacity: 0; } }
-.ticket .syl { color: var(--accent); opacity: .45; margin: 0 1px; }
+/* Podtržení slova, které rozpoznávač zachytil – roste zleva doprava. */
+.ticket .tw { position: relative; display: inline-block; padding-bottom: 5px; }
+.ticket .tw::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 5px; border-radius: 3px;
+  background: #4fae55; transform: scaleX(0); transform-origin: left center; transition: transform .25s ease-out;
+}
+.ticket .tw.read::after { transform: scaleX(1); }
 .ticket .screw { color: #b06a1e; }
 .font-upper { font-family: var(--font-upper); font-weight: 700; }
 .font-lower { font-family: var(--font-lower); font-weight: 400; }
