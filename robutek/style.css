@@ -121,11 +121,21 @@ body {
 .ball { fill: #e8eef6; stroke: #9fb0c4; stroke-width: 2.5; filter: drop-shadow(0 2px 2px rgba(0,0,0,.25)); }
 .ball.fall { animation: ballfall .9s cubic-bezier(.4,0,.9,.6) forwards; }
 @keyframes ballfall { to { transform: translateY(120px) scale(.85); opacity: 0; } }
-.part-broken .pbody { opacity: .55; }
-.part-broken .pmark { display: inline; }
-.pmark { display: none; }
-.part-ok .pglow { animation: pglow .6s; }
-@keyframes pglow { 0% { transform: scale(1); } 45% { transform: scale(1.25); } 100% { transform: scale(1); } }
+/* Rozbitý díl je poznat polohou, ne ztmavením. Pohyblivý kus se přetočí na místo. */
+.ctrl .pmove { transition: transform .5s cubic-bezier(.34,1.5,.64,1); transform-box: fill-box; transform-origin: 50% 50%; }
+.ctrl .pgap, .ctrl .pwarn { opacity: 0; transition: opacity .35s; }
+.part-broken .pgap { opacity: 1; }
+.part-broken .pwarn { opacity: 1; animation: warnpulse 1.3s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 50%; }
+@keyframes warnpulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.2); } }
+
+.t-switch.part-broken .pmove { transform: rotate(-54deg); }          /* míří mimo trasu */
+.t-flap .pmove { transform-origin: 50% 100%; transform: rotate(-76deg); }   /* otevřená, sklopená */
+.t-flap.part-broken .pmove { transform: rotate(0deg); }              /* zavřená, stojí napříč */
+.t-bridge .pmove { transform-origin: 0% 50%; }
+.t-bridge.part-broken .pmove { transform: rotate(-34deg); }          /* zvednutý */
+.t-chute.part-broken .pmove { transform: rotate(26deg); }            /* převrácený */
+.t-wheel:not(.part-broken) .pmove { animation: spin 1.6s linear infinite; }  /* spravené se točí */
+@keyframes spin { to { transform: rotate(360deg); } }
 #bell.ring { animation: bellring .6s; transform-origin: 406px 60px; }
 @keyframes bellring { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-16deg); } 75% { transform: rotate(16deg); } }
 .spark { animation: spark .7s ease-out forwards; }

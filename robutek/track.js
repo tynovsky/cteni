@@ -37,7 +37,8 @@ const SCREW = { verb: 'vrať', w: 'šrou-bek' };
 // jejich místo i natočení dopočítá z křivky – nemůžou skončit vedle dráhy.
 const TRACK = {
   view: '0 0 440 500',
-  floor: 468,          // po téhle lince chodí robůtek, pod rámem dráhy
+  floor: 468,          // nejnižší poloha robůtka, pod rámem dráhy
+  home: { x: 70, y: 468 },   // kam se robůtek vrátí, než se pustí kulička
   d: 'M54,52 C130,44 292,56 372,96 C300,134 140,146 62,182 C140,218 300,228 374,266 C300,304 150,314 66,348 C150,382 278,392 346,404',
   slots: [0.09, 0.20, 0.31, 0.42, 0.53, 0.64, 0.75, 0.86],
   ballR: 11,

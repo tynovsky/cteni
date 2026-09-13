@@ -338,27 +338,33 @@ function onMicResult(e) {
 const G = { world: 0, tier: 0 };
 const A = { parts: [], queue: [], step: 0, busy: false, running: false, tapOk: false, seed: 0, reach: 0 };
 
+// Rozbitý díl musí být poznat z druhé strany pokoje. Nedělá to ztmavení, ale poloha:
+// pohyblivý kus je v <g class="pmove"> a natáčí ho CSS podle tříd t-<typ> a part-broken.
+// K tomu je v trase vidět díra – ta říká „tudy kulička neprojede“ líp než jakýkoli symbol.
 function partShape(p) {
   const c = ADJ.colors[p.color], k = ADJ.sizes[p.size].k, r = 18 * k;
+  const gap = `<g class="pgap"><rect x="${-r * 0.85}" y="-9" width="${r * 1.7}" height="18" fill="#f3e6d0"/>
+      <path d="M${-r * 0.85},-9 l7,5 l-7,5 l7,5 M${r * 0.85},-9 l-7,5 l7,5 l-7,5" stroke="#c8b291" stroke-width="3" fill="none"/></g>`;
+  const warn = `<g class="pwarn"><circle cy="${-r - 15}" r="11" fill="#fff" stroke="#e0443a" stroke-width="3"/>
+      <path d="M0,${-r - 21} v7" stroke="#e0443a" stroke-width="3.5" stroke-linecap="round"/>
+      <circle cy="${-r - 10.5}" r="2" fill="#e0443a"/></g>`;
+  let move;
   if (p.type === 'switch') {
-    return `<g class="pbody"><rect x="${-r}" y="-4" width="${r * 2}" height="8" rx="4" fill="${c.hex}" stroke="${c.dark}" stroke-width="2"/>
-            <path d="M${-r * 0.2},0 L${r},${-r * 0.9}" stroke="${c.hex}" stroke-width="7" stroke-linecap="round"/>
-            <circle r="5" fill="${c.dark}"/></g>`;
+    move = `<rect x="${-r}" y="-4" width="${r * 2}" height="8" rx="4" fill="${c.hex}" stroke="${c.dark}" stroke-width="2"/>
+            <path d="M${r * 0.5},0 L${r},0" stroke="${c.dark}" stroke-width="3"/>`;
+  } else if (p.type === 'flap') {
+    move = `<rect x="-4" y="${-r * 1.7}" width="8" height="${r * 1.7}" rx="4" fill="${c.hex}" stroke="${c.dark}" stroke-width="2"/>`;
+  } else if (p.type === 'bridge') {
+    move = `<rect x="${-r}" y="-5" width="${r * 2}" height="10" rx="3" fill="${c.hex}" stroke="${c.dark}" stroke-width="2"/>
+            <path d="M${-r * 0.4},-5 v10 M${r * 0.4},-5 v10" stroke="${c.dark}" stroke-width="2"/>`;
+  } else if (p.type === 'chute') {
+    move = `<path d="M${-r},${-r * 0.6} L${-r * 0.6},7 L${r * 0.6},7 L${r},${-r * 0.6}" fill="none" stroke="${c.hex}" stroke-width="6" stroke-linejoin="round"/>`;
+  } else {
+    move = `<circle r="${r * 0.85}" fill="none" stroke="${c.hex}" stroke-width="6"/>
+            <path d="M0,${-r * 0.85} V${r * 0.85} M${-r * 0.85},0 H${r * 0.85}" stroke="${c.hex}" stroke-width="4"/>`;
   }
-  if (p.type === 'flap') {
-    return `<g class="pbody"><rect x="${-r * 0.3}" y="${-r * 1.5}" width="${r * 0.8}" height="${r * 1.5}" rx="3" fill="${c.hex}" stroke="${c.dark}" stroke-width="2"/>
-            <circle cy="0" r="4" fill="${c.dark}"/></g>`;
-  }
-  if (p.type === 'bridge') {
-    return `<g class="pbody"><rect x="${-r}" y="-5" width="${r * 2}" height="10" rx="3" fill="${c.hex}" stroke="${c.dark}" stroke-width="2"/>
-            <path d="M${-r * 0.5},-5 v10 M${r * 0.5},-5 v10" stroke="${c.dark}" stroke-width="2"/></g>`;
-  }
-  if (p.type === 'chute') {
-    return `<g class="pbody"><path d="M${-r},${-r * 0.5} L${-r * 0.6},6 L${r * 0.6},6 L${r},${-r * 0.5}" fill="none" stroke="${c.hex}" stroke-width="6" stroke-linejoin="round"/></g>`;
-  }
-  return `<g class="pbody"><circle r="${r * 0.8}" fill="none" stroke="${c.hex}" stroke-width="6"/>
-          <path d="M0,${-r * 0.8} V${r * 0.8} M${-r * 0.8},0 H${r * 0.8}" stroke="${c.hex}" stroke-width="4"/>
-          <circle r="3" fill="${c.dark}"/></g>`;
+  const pivot = p.type === 'wheel' ? `<circle r="3.5" fill="${c.dark}"/>` : `<circle r="5" fill="${c.dark}"/>`;
+  return gap + `<g class="pmove">${move}</g>` + pivot + warn;
 }
 
 function buildScene() {
@@ -374,9 +380,9 @@ function buildScene() {
     const pt2 = rail.getPointAtLength(Math.min(len, p.at * len + 3));
     const ang = Math.atan2(pt2.y - pt.y, pt2.x - pt.x) * 180 / Math.PI;
     const g = document.createElementNS(SVGNS, 'g');
-    g.setAttribute('class', 'ctrl part-broken');
+    g.setAttribute('class', `ctrl t-${p.type} part-broken`);
     g.setAttribute('transform', `translate(${pt.x},${pt.y}) rotate(${ang})`);
-    g.innerHTML = partShape(p) + `<text class="pmark" y="-24" text-anchor="middle" font-size="22" font-weight="bold" fill="#e0443a">!</text><circle class="hit" r="26" fill="transparent"/>`;
+    g.innerHTML = partShape(p) + '<circle class="hit" r="26" fill="transparent"/>';
     g.onclick = () => { if (A.tapOk && !A.busy && A.running) obeyPart(p); };
     p.el = g; p.x = pt.x; p.y = pt.y;
     svg.appendChild(g);
@@ -388,7 +394,7 @@ function buildScene() {
   const rb = document.createElementNS(SVGNS, 'g');
   rb.setAttribute('class', 'robot'); rb.setAttribute('id', 'robot');
   rb.innerHTML = ROBOT.svg;
-  rb.style.transform = `translate(80px, ${TRACK.floor}px)`;
+  rb.style.transform = `translate(${TRACK.home.x}px, ${TRACK.home.y}px)`;
   svg.appendChild(rb);
 }
 
@@ -435,12 +441,15 @@ function say(text, ms = 1800) {
   clearTimeout(say._t);
   say._t = setTimeout(() => { s.hidden = true; }, ms);
 }
-function walkTo(x) {
+// Robůtek jde přímo k dílu, ne po podlaze pod rámem – u dílu nahoře by jinak mával
+// o tři sta pixelů níž a nebylo by poznat, co vlastně spravuje.
+function moveTo(x, y) {
   const rb = $('#robot');
   rb.classList.add('walk');
-  rb.style.transform = `translate(${clamp(x - 20, 40, 400)}px, ${TRACK.floor}px)`;
+  rb.style.transform = `translate(${clamp(x, 42, 398)}px, ${clamp(y, 74, TRACK.floor)}px)`;
   return new Promise((res) => setTimeout(() => { rb.classList.remove('walk'); res(); }, 520));
 }
+const goHome = () => moveTo(TRACK.home.x, TRACK.home.y);
 function poke() {
   const rb = $('#robot');
   rb.classList.remove('poke'); rb.getBoundingClientRect(); rb.classList.add('poke');
@@ -495,7 +504,7 @@ function obeyPart(p) {                           // ťuknutí místo hlasu (bez 
 }
 
 async function act(p) {
-  await walkTo(p.x);
+  await moveTo(p.x - 26, p.y + 32);      // postavit se k dílu, ne pod něj
   await poke();
   const t = A.queue[0];
   const want = t.descs[A.step];
@@ -516,7 +525,7 @@ async function act(p) {
 }
 async function fixScrew() {
   A.busy = true;
-  await walkTo(200);
+  await goHome();
   await poke();
   sfx.fix();
   A.queue.shift();
@@ -528,6 +537,7 @@ async function finishTicket() {
   A.queue.shift();
   A.step = 0;
   $('#ticket').classList.add('gone');
+  await goHome();                         // uhnout z trasy, ať je kulička vidět
   await ballRun();
   if (!A.queue.length) { win(); return; }
   showTicket();
