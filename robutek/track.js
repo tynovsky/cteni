@@ -58,3 +58,20 @@ const TRACK = {
     <path d="M338,392 h56 v30 a10,10 0 0 1 -10,10 h-36 a10,10 0 0 1 -10,-10 Z" fill="#b9c6d6" stroke="#8b9bb0" stroke-width="3"/>
   `,
 };
+
+// Robůtek – neumí číst, umí poslouchat. Kreslí se kolem bodu [0,0], nohama na zemi.
+const ROBOT = {
+  svg: `
+    <g class="rb-legs">
+      <rect x="-16" y="-18" width="10" height="18" rx="3" fill="#6f7f94"/>
+      <rect x="6" y="-18" width="10" height="18" rx="3" fill="#6f7f94"/>
+    </g>
+    <rect x="-24" y="-58" width="48" height="42" rx="10" fill="#f0c040" stroke="#b78f1e" stroke-width="3"/>
+    <rect x="-19" y="-86" width="38" height="30" rx="9" fill="#ffd970" stroke="#b78f1e" stroke-width="3"/>
+    <circle cx="-8" cy="-71" r="5" fill="#2b2137"/><circle cx="8" cy="-71" r="5" fill="#2b2137"/>
+    <path d="M-19,-64 h38" stroke="#b78f1e" stroke-width="2"/>
+    <path d="M0,-86 v-10" stroke="#b78f1e" stroke-width="3"/><circle cx="0" cy="-99" r="4" fill="#e0443a"/>
+    <g class="rb-ear"><path d="M-19,-76 h-8 v14 h8" stroke="#b78f1e" stroke-width="3" fill="#ffd970"/></g>
+    <g class="rb-arm"><rect x="22" y="-54" width="26" height="9" rx="4" fill="#6f7f94"/><circle cx="50" cy="-50" r="6" fill="#8b9bb0"/></g>
+  `,
+};
