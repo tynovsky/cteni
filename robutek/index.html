@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Robůtek</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Baloo+2:wght@700;800&family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- DOMŮ -->
+<section id="home" class="screen active">
+  <header class="title">
+    <h1>Ro<span>bůtek</span></h1>
+    <p>Robůtek neumí číst. Ty ano. Přečti mu nahlas, co je na cedulce, a on to udělá.</p>
+  </header>
+  <div class="warn" id="mic-warn" hidden></div>
+  <div class="worlds" id="worlds"></div>
+  <div class="home-buttons">
+    <button class="btn ghost" id="btn-help">❓ Jak se hraje</button>
+    <button class="btn ghost" id="btn-parent">⚙️ Rodič</button>
+  </div>
+</section>
+
+<!-- HRA -->
+<section id="game" class="screen">
+  <div class="topbar">
+    <button class="btn round" id="btn-back">←</button>
+    <div class="progress"><div class="bar" id="bar"></div><span id="bar-text"></span></div>
+    <button class="btn round" id="btn-speak" title="Přečti mi to">🔊</button>
+  </div>
+
+  <div class="ticket-wrap">
+    <div class="ticket" id="ticket"><span id="ticket-text"></span></div>
+    <div class="pressure" title="tlak"><div class="pressure-fill" id="pressure"></div></div>
+  </div>
+
+  <div class="stage">
+    <svg id="svg" viewBox="0 0 440 330" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+    <div class="say" id="say" hidden></div>
+  </div>
+
+  <div class="micbar" id="micbar" hidden>
+    <button class="mic off" id="btn-mic">
+      <span class="ring"></span>
+      <span class="ico">🎤</span>
+    </button>
+    <div class="mic-side">
+      <div class="mic-label" id="mic-label">Ťukni a mluv</div>
+      <div class="heard" id="heard"></div>
+    </div>
+  </div>
+</section>
+
+<!-- Modal: kolo hotovo -->
+<div class="modal" id="modal-done">
+  <div class="card">
+    <div class="confetti" id="done-icon">🤖</div>
+    <h2 id="done-title"></h2>
+    <p id="done-text"></p>
+    <div class="made" id="done-made"></div>
+    <div class="modal-buttons">
+      <button class="btn big" id="btn-next">Ještě jednou</button>
+      <button class="btn ghost" id="btn-home">Domů</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: nápověda -->
+<div class="modal" id="modal-help">
+  <div class="card help">
+    <h2>Jak se hraje</h2>
+    <ul>
+      <li>🎫 Ze stroje vyjede cedulka s povelem, třeba <b>ZMÁČKNI ČERVENÉ TLAČÍTKO</b>.</li>
+      <li>🤖 Robůtek neumí číst. Přečti mu povel <b>nahlas celý</b> a on ho provede.</li>
+      <li>🤷 Když mu neřekneš dost, rozhodí rukama — na stroji jsou červená dvě,
+        tak neví která. Dočti cedulku do konce.</li>
+      <li>💨 Když mu řekneš něco jiného, udělá to. Sykne pára a odpadne šroubek,
+        který se pak musí vrátit.</li>
+      <li>🏆 Když stroj zase jede, vyrobí příšerku. Prohrát se nedá.</li>
+    </ul>
+    <div class="modal-buttons"><button class="btn big" id="help-close">Jasně</button></div>
+  </div>
+</div>
+
+<!-- Modal: rodič -->
+<div class="modal" id="modal-parent">
+  <div class="card parent">
+    <div id="parent-gate">
+      <h2>Pro rodiče</h2>
+      <p>Kolik je <b id="gate-q"></b>?</p>
+      <input type="number" id="gate-a" inputmode="numeric">
+      <div class="modal-buttons"><button class="btn big" id="gate-ok">OK</button><button class="btn ghost" id="gate-cancel">Zpět</button></div>
+    </div>
+    <div id="parent-panel" hidden>
+      <h2>Nastavení</h2>
+      <label><input type="checkbox" id="opt-mic"> Poroučet hlasem (mikrofon)</label>
+      <label>Přísnost rozpoznávání:
+        <select id="opt-strict">
+          <option value="0">shovívavá – uzná i nepřesné</option>
+          <option value="1">normální</option>
+          <option value="2">přísná – jen přesně</option>
+        </select>
+      </label>
+      <label>Povelů na kolo: <input type="number" id="opt-goal" min="3" max="20"></label>
+      <label><input type="checkbox" id="opt-syll"> Ukazovat slabiky (ČER·VE·NÉ)</label>
+      <label><input type="checkbox" id="opt-tts"> Předčítat nahlas (🔊)</label>
+      <label><input type="checkbox" id="opt-sound"> Zvuky</label>
+      <label><input type="checkbox" id="opt-unlock"> Odemknout všechny levely</label>
+      <div class="modal-buttons">
+        <button class="btn ghost danger" id="btn-reset">Smazat postup</button>
+        <button class="btn big" id="parent-close">Hotovo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="machine.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
