@@ -138,6 +138,16 @@ body {
 @keyframes spin { to { transform: rotate(360deg); } }
 #bell.ring { animation: bellring .6s; transform-origin: 406px 60px; }
 @keyframes bellring { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-16deg); } 75% { transform: rotate(16deg); } }
+/* konfety: vyletí do vějíře, otočí se a spadnou pod misku */
+.confetto {
+  transform-box: fill-box; transform-origin: 50% 50%; opacity: 0;
+  animation: confetto 1.5s cubic-bezier(.2,.55,.45,1) forwards;
+}
+@keyframes confetto {
+  0%   { opacity: 1; transform: translate(0, 0) rotate(0deg) scale(.5); }
+  35%  { opacity: 1; transform: translate(calc(var(--dx) * .55), var(--up)) rotate(calc(var(--rot) * .4)) scale(1); }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(var(--rot)) scale(.9); }
+}
 .spark { animation: spark .7s ease-out forwards; }
 @keyframes spark { 0% { opacity: 1; transform: scale(.4); } 100% { opacity: 0; transform: scale(1.8) translateY(-20px); } }
 

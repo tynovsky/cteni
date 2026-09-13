@@ -223,6 +223,7 @@ const sfx = {
   roll: () => beep(90, .3, 'triangle', .05),
   drop: () => { beep(240, .12, 'triangle', .12); beep(150, .2, 'sine', .1, .1); },
   bell: () => { beep(1320, .35, 'sine', .18); beep(1760, .3, 'sine', .12, .08); },
+  pop: () => [0, 1, 2, 3].forEach((i) => beep(760 + i * 240, .09, 'triangle', .13, i * 0.055)),
   steam: () => { beep(1200, .5, 'sawtooth', .05); beep(900, .4, 'sawtooth', .04, .1); },
   shrug: () => { beep(400, .1, 'sine', .1); beep(300, .14, 'sine', .1, .1); },
   fanfare: () => [523, 659, 784, 1047].forEach((f, i) => beep(f, .25, 'sine', .2, i * .12)),
@@ -425,12 +426,39 @@ function ballRun() {
     requestAnimationFrame(stepFn);
   });
 }
+// Konfety: každý kousek dostane vlastní směr, výšku oblouku, rotaci a zpoždění,
+// jinak by se celá hrst hýbala jako jeden kus.
+const CONFETTI_COLORS = ['#e0443a', '#3b82d6', '#f0c040', '#4fae55', '#ff8fab', '#8d5be0', '#2ab5a5'];
+function confetti(x, y, n = 34) {
+  const svg = $('#svg');
+  if (!svg) return;
+  for (let i = 0; i < n; i++) {
+    const w = 5 + rnd(5), h = 7 + rnd(6);
+    const c = document.createElementNS(SVGNS, 'rect');
+    c.setAttribute('x', x - w / 2); c.setAttribute('y', y - h / 2);
+    c.setAttribute('width', w); c.setAttribute('height', h);
+    c.setAttribute('rx', 1.5);
+    c.setAttribute('fill', pick(CONFETTI_COLORS));
+    c.setAttribute('class', 'confetto');
+    const ang = -Math.PI / 2 + (Math.random() - 0.5) * 2.2;      // vějíř vzhůru
+    const dist = 55 + Math.random() * 120;
+    c.style.setProperty('--dx', (Math.cos(ang) * dist).toFixed(1) + 'px');
+    c.style.setProperty('--up', (-45 - Math.random() * 80).toFixed(1) + 'px');
+    c.style.setProperty('--dy', (75 + Math.random() * 95).toFixed(1) + 'px');
+    c.style.setProperty('--rot', (Math.random() * 1080 - 540).toFixed(0) + 'deg');
+    c.style.animationDelay = (Math.random() * 0.28).toFixed(2) + 's';
+    svg.appendChild(c);
+    setTimeout(() => c.remove(), 2400);
+  }
+}
 function arrive() {
   return new Promise((done) => {
     const bell = $('#bell');
     if (bell) { bell.classList.remove('ring'); bell.getBoundingClientRect(); bell.classList.add('ring'); }
-    sfx.bell();
-    setTimeout(done, 700);
+    sfx.bell(); sfx.pop();
+    confetti(TRACK.basket.x, TRACK.basket.y - 10);
+    setTimeout(() => confetti(TRACK.basket.x, TRACK.basket.y - 10, 18), 320);
+    setTimeout(done, 1200);                                      // ať je výbuch vidět dřív než modal
   });
 }
 
