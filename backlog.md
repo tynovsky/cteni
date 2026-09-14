@@ -104,6 +104,16 @@ i slova, která sedí na cíl, i když je rozpoznávač vrátil jen v alternativ
 Hra `porucha/` se nelíbila a nahradila ji Barabizna a pak Robůtek. Pořád visí
 v rozcestníku. Buď ji z rozcestníku sundat, nebo nechat a nevracet se k ní.
 
+### 13. Robůtek přišel o ťukací záložní režim
+Přepisem na sestavy a přiblížení zmizel klik na ovladač. Bez mikrofonu (Firefox,
+http, zamítnuté povolení, bez internetu) se hra **nedá hrát vůbec** — dřív šlo díl
+ťuknout. Úvodní hláška už ťukání neslibuje, takže to není rozbité, ale je to ztráta.
+
+**Když se bude vracet:** klik na `.sub` ve zblízka zobrazené sestavě by musel projít
+stejným `resolve()` jako řeč — tedy ťuknutí na ovladač = „řekl jsem tenhle". Pozor,
+ťukání jde uhodnout, takže bez čtení by to mělo být jen nouzové řešení, ne rovnocenná
+cesta.
+
 ### 12. Druhá scéna pro Barabiznu
 `barabizna/parts.js` je psaný tak, aby druhá scéna byla jen seznam dílů, ne nový kód.
 Rozpracovaný nápad: strašidlo, kterému se rozpadá oblečení (`knof-lík`, `kap-sa`,

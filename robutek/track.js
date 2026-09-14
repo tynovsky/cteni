@@ -20,18 +20,47 @@ const ADJ = {
   },
 };
 
-// Díly dráhy. acc = 4. pád (na cedulce), nom = 1. pád (dítě ho může říct taky),
-// g = rod pro tvar přídavného jména, verb = sloveso v rozkazu.
-const PARTS = {
-  switch: { nom: 'vý-hyb-ka', acc: 'vý-hyb-ku', g: 'f', verb: 'pře-hoď',  fix: 'přehodí' },
-  flap:   { nom: 'klap-ka',   acc: 'klap-ku',   g: 'f', verb: 'o-tev-ři', fix: 'otevře' },
-  bridge: { nom: 'most',      acc: 'most',      g: 'm', verb: 'sklop',    fix: 'sklopí' },
-  chute:  { nom: 'žlab',      acc: 'žlab',      g: 'm', verb: 'srov-nej', fix: 'srovná' },
-  wheel:  { nom: 'ko-leč-ko', acc: 'ko-leč-ko', g: 'n', verb: 'roz-toč',  fix: 'roztočí' },
-};
-
 // Šroubek vypadne při špatném tahu; bez přívlastku, takže bez tvarů.
 const SCREW = { verb: 'vrať', w: 'šrou-bek' };
+
+// ---------- povely zblízka ----------
+// PRAVIDLO, na kterém stojí celá hra: všichni kandidáti musí vypadat stejně
+// přijatelně. Jakmile obrázek některého zvýhodní (třeba tím, že jen on je křivý),
+// dá se úloha vyřešit bez čtení a text je ozdoba. Porouchaná je proto vždy celá
+// SESTAVA, ne konkrétní ovladač — a který ovladač, řekne jedině cedulka.
+//
+// Gramatika tentokrát nezlobí: „prostřední“ je měkké přídavné jméno (jeden tvar
+// pro všechny rody), „třikrát“ a „doleva“ jsou neměnné úplně. Žádná tabulka tvarů.
+const CUES = {
+  pos:   { first: 'prv-ní', middle: 'pro-střed-ní', last: 'po-sled-ní' },
+  count: { one: 'jed-nou', two: 'dva-krát', three: 'tři-krát' },
+  dir:   { left: 'do-le-va', right: 'do-pra-va' },
+};
+
+// Sestavy na trase. Kreslí se i v celku (malé), takže přiblížení je opravdu zoom
+// téže kresby, ne výměna obrázku.
+//   by    = čím se dá v téhle sestavě rozlišovat
+//   slots = místa ovladačů v souřadnicích sestavy
+const RIGS = {
+  levers: {
+    verb: 'str-hni',
+    noun: { nom: 'pá-ka', acc: 'pá-ku', g: 'f' },
+    by: ['color', 'pos'],
+    slots: [{ x: -34, y: 0 }, { x: 0, y: 0 }, { x: 34, y: 0 }],
+  },
+  wheel: {
+    verb: 'roz-toč',
+    noun: { nom: 'ko-leč-ko', acc: 'ko-leč-ko', g: 'n' },
+    by: ['count'],
+    slots: [{ x: 0, y: 0 }],
+  },
+  points: {
+    verb: 'pře-hoď',
+    noun: { nom: 'vý-hyb-ka', acc: 'vý-hyb-ku', g: 'f' },
+    by: ['dir'],
+    slots: [{ x: 0, y: 0 }],
+  },
+};
 
 // Trasa: jedna křivka shora dolů. Díly sedí na zlomku její délky, takže se
 // jejich místo i natočení dopočítá z křivky – nemůžou skončit vedle dráhy.
