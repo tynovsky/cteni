@@ -22,6 +22,19 @@ levely podle délky slov a rodičovské nastavení. Podrobnosti v README každé
 Kouzelná slova navíc potřebují **https (nebo localhost) a internet** — rozpoznávání řeči
 běží na serveru prohlížeče. Bez toho se hra sama přepne na ťukání do obrázků.
 
+Odložené věci — známé chyby, dluh a nápady — jsou v [backlogu](backlog.md).
+
+## Testy
+
+```bash
+node tools/smoke.cjs <hra> [id ...]     # spustí hru nad falešným DOM
+node tools/smoke.cjs robutek robot ball rail
+```
+
+Smoke test hru opravdu spustí a zavolá `startLevel()` pro každý level. Layout
+nepočítá, ale pády, překlepy v id a chybějící globály odhalí — vznikl poté, co
+zapomenutá definice `ROBOT` udělala hru nehratelnou a žádný test to nechytil.
+
 ## Spuštění lokálně
 
 ```bash
