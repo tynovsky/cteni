@@ -92,7 +92,11 @@ body {
 
 /* ---- stroj ---- */
 .stage { position: relative; flex: 1; min-height: 0; display: grid; place-items: center; }
-.stage svg { width: min(100%, 620px); max-height: 100%; overflow: visible; }
+/* overflow musí být hidden: při přiblížení se kresba několikanásobně zvětší a všechno
+   mimo výřez by se vykreslovalo dál — přeteklo by ven a přemalovalo cedulku nad scénou.
+   viewBox je rám, takže se na něm má ořezávat. */
+.stage svg { width: min(100%, 620px); max-height: 100%; overflow: hidden; }
+.ticket-wrap { position: relative; z-index: 2; }
 .robot { transition: transform .5s cubic-bezier(.4,0,.2,1); }
 .robot.walk .rb-legs { animation: step .28s ease-in-out infinite alternate; transform-origin: 50% 0; }
 @keyframes step { from { transform: skewX(-8deg); } to { transform: skewX(8deg); } }
